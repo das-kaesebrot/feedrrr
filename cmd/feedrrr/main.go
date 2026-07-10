@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
+	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/scheduler"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/sinks"
 	"github.com/containrrr/shoutrrr/pkg/router"
-	"github.com/go-co-op/gocron/v2"
 )
 
 func main() {
@@ -25,31 +24,11 @@ func main() {
 		log.Fatalf("Error setting up sinks! %v", err)
 	}
 
-	s, err := gocron.NewScheduler()
+	s, err := scheduler.SetupJobs(&c.Jobs, &jobSinks)
 	if err != nil {
-		log.Fatalf("Error setting up scheduler! %v", err)
+		log.Fatalf("Error setting up scheduled jobs! %v", err)
 	}
 
-	// add a job to the scheduler
-	j, err := s.NewJob(
-		gocron.DurationJob(
-			10*time.Second,
-		),
-		gocron.NewTask(
-			func(a string, b int) {
-				fmt.Printf("%v %v", a, b)
-			},
-			"hello",
-			1,
-		),
-	)
-	if err != nil {
-		// handle error
-	}
-	// each job has a unique id
-	fmt.Println(j.ID())
-
-	// start the scheduler
 	s.Start()
 
 	// block until you are ready to shut down
@@ -59,9 +38,7 @@ func main() {
 
 	// when you're done, shut it down
 	err = s.Shutdown()
-	// or for context-aware teardown:
-	// err = s.ShutdownWithContext(ctx)
 	if err != nil {
-		// handle error
+		log.Fatalf("Error shutting down jobs! %v", err)
 	}
 }
