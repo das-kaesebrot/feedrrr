@@ -3,9 +3,9 @@ package sinks
 import (
 	"fmt"
 	"log/slog"
-	"net/url"
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
+	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/utility"
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/router"
 	"github.com/containrrr/shoutrrr/pkg/types"
@@ -20,7 +20,7 @@ func SetupSinks(resultJobSinks *map[string]*router.ServiceRouter, c *config.Feed
 	for jobName, jobConfig := range c.Jobs {
 		resolvedJobSinks := []string{}
 		for _, sink := range jobConfig.Sinks {
-			if IsUrl(sink) {
+			if utility.IsUrl(sink) {
 				resolvedJobSinks = append(resolvedJobSinks, sink)
 			} else {
 				sinks, ok := sinkAliases[sink]
@@ -63,7 +63,7 @@ func flattenSinkAliasRecursively(sinkAliases *map[string][]string, name string) 
 	}
 
 	for _, sink := range sinks {
-		if IsUrl(sink) {
+		if utility.IsUrl(sink) {
 			results = append(results, sink)
 		} else {
 			flattened, err := flattenSinkAliasRecursively(sinkAliases, sink)
@@ -82,13 +82,4 @@ func flattenSinkAliasRecursively(sinkAliases *map[string][]string, name string) 
 func SendToSink(sinkMap *map[string]*router.ServiceRouter, sink string, message string, params *types.Params) error {
 	(*sinkMap)[sink].Send(message, params)
 	return nil
-}
-
-// Source - https://stackoverflow.com/a/55551215
-// Posted by jchavannes, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-07-10, License - CC BY-SA 4.0
-
-func IsUrl(str string) bool {
-	u, err := url.Parse(str)
-	return err == nil && u.Scheme != "" && u.Host != ""
 }
