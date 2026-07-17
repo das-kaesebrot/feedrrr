@@ -2,16 +2,10 @@ package config
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
 )
-
-type YamlURL struct {
-	*url.URL
-}
 
 type FeedrrrConfig struct {
 	Jobs  map[string]JobConfig `yaml:"jobs"`
@@ -19,28 +13,12 @@ type FeedrrrConfig struct {
 }
 
 type JobConfig struct {
-	Sinks        []string `yaml:"sinks"`
-	CronSchedule string   `yaml:"schedule"`
-	FeedSource   YamlURL  `yaml:"source"`
+	Sinks    []string `yaml:"sinks"`
+	Schedule string   `yaml:"schedule"`
+	Source   string   `yaml:"source"`
 }
 
-func (u *YamlURL) UnmarshalYAML(value *yaml.Node) error {
-	url, err := url.Parse(value.Value)
-	u.URL = url
-	if err != nil {
-		return err
-	}
-	if u.URL.Scheme != "" && u.URL.Host != "" {
-		return fmt.Errorf("URL is not valid!")
-	}
-	return nil
-}
-
-func (u YamlURL) MarshalYAML() (any, error) {
-	return u.String(), nil
-}
-
-func ParseConfig(c *FeedrrrConfig, appName string) error {
+func ParseConfig(appName string) (*FeedrrrConfig, error) {
 	appName = strings.ToValidUTF8(strings.ToLower(appName), "")
 
 	viper.SetConfigName("config")
@@ -57,13 +35,14 @@ func ParseConfig(c *FeedrrrConfig, appName string) error {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = viper.Unmarshal(c)
+	c := &FeedrrrConfig{}
+	err = viper.UnmarshalExact(c)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return c, nil
 }
