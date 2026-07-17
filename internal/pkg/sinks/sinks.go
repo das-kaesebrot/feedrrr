@@ -6,9 +6,9 @@ import (
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/utility"
-	"github.com/containrrr/shoutrrr"
-	"github.com/containrrr/shoutrrr/pkg/router"
-	"github.com/containrrr/shoutrrr/pkg/types"
+	"github.com/nicholas-fedor/shoutrrr"
+	"github.com/nicholas-fedor/shoutrrr/pkg/router"
+	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
 
 func SetupSinks(resultJobSinks *map[string]*router.ServiceRouter, c *config.FeedrrrConfig) error {

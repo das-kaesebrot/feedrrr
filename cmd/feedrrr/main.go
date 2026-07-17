@@ -11,7 +11,7 @@ import (
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/scheduler"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/sinks"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/utility"
-	"github.com/containrrr/shoutrrr/pkg/router"
+	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 
 func getLogLevelFromEnv() slog.Level {

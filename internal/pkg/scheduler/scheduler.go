@@ -9,8 +9,8 @@ import (
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/rss"
-	"github.com/containrrr/shoutrrr/pkg/router"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 
 func SetupJobs(jobConfigs *map[string]config.JobConfig, jobSinks *map[string]*router.ServiceRouter) (gocron.Scheduler, error) {
@@ -35,7 +35,7 @@ func SetupJobs(jobConfigs *map[string]config.JobConfig, jobSinks *map[string]*ro
 		j, err := s.NewJob(
 			gocron.CronJob(config.Schedule, false),
 			gocron.NewTask(func(ctx context.Context) {
-				rss.PollFeed(ctx, &lastExecutionTime, url, router)
+				rss.PollFeed(ctx, &lastExecutionTime, url, router, false)
 			}),
 		)
 		if err != nil {
