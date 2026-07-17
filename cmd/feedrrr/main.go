@@ -1,44 +1,65 @@
 package main
 
 import (
-	"log"
-	"time"
+	"log/slog"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/scheduler"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/sinks"
+	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/utility"
 	"github.com/containrrr/shoutrrr/pkg/router"
 )
 
-func main() {
-	// logger := slog.Default()
+func getLogLevelFromEnv() slog.Level {
+	levelStr := os.Getenv("LOG_LEVEL")
 
-	c := new(config.FeedrrrConfig{})
-	err := config.ParseConfig(c, "feedrrr")
+	switch strings.ToLower(levelStr) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
+func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: getLogLevelFromEnv(),
+	}))
+	slog.SetDefault(logger)
+
+	c, err := config.ParseConfig("feedrrr")
 	if err != nil {
-		log.Fatalf("Error parsing config! %v", err)
+		utility.HandleErr("Error parsing config", err)
 	}
 	jobSinks := make(map[string]*router.ServiceRouter)
 	err = sinks.SetupSinks(&jobSinks, c)
 	if err != nil {
-		log.Fatalf("Error setting up sinks! %v", err)
+		utility.HandleErr("Error setting up sinks", err)
 	}
 
 	s, err := scheduler.SetupJobs(&c.Jobs, &jobSinks)
 	if err != nil {
-		log.Fatalf("Error setting up scheduled jobs! %v", err)
+		utility.HandleErr("Error setting up scheduled jobs", err)
 	}
 
 	s.Start()
 
-	// block until you are ready to shut down
-	select {
-	case <-time.After(time.Minute):
-	}
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigChan
 
 	// when you're done, shut it down
 	err = s.Shutdown()
 	if err != nil {
-		log.Fatalf("Error shutting down jobs! %v", err)
+		utility.HandleErr("Error shutting down jobs", err)
 	}
 }
