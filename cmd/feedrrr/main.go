@@ -16,6 +16,8 @@ import (
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 
+var Version = "dev"
+
 func parseLogLevelFromString(levelStr string) (slog.Level, error) {
 	switch strings.ToLower(levelStr) {
 	case "debug":
@@ -53,6 +55,7 @@ func main() {
 		slog.Warn(err.Error())
 	}
 
+	slog.Info("Starting up", "version", Version)
 	slog.Debug("Using slog with specified level", "loglevel", logLevel)
 
 	if configFileOverride != "" {
