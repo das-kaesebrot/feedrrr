@@ -75,7 +75,10 @@ func main() {
 		utility.HandleErr("Error setting up sinks", err)
 	}
 
-	s, err := scheduler.SetupJobs(&c.Jobs, &jobSinks)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	s, err := scheduler.SetupJobs(ctx, &c.Jobs, &jobSinks)
 	if err != nil {
 		utility.HandleErr("Error setting up scheduled jobs", err)
 	}
