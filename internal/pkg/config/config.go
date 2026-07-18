@@ -28,8 +28,17 @@ func ParseConfig(appName string, configFileOverride string) (*FeedrrrConfig, err
 		viper.SetConfigFile(configFileOverride)
 		slog.Info("Using explicit config file path", "configFileOverride", configFileOverride)
 	} else {
-		setupDefaultConfigPaths(appName)
-		slog.Info("Using default config search paths")
+		searchPaths := []string{
+			fmt.Sprintf("/etc/%v/", appName),
+
+			// respect XDG base directory specification https://specifications.freedesktop.org/basedir/latest/#variables
+			fmt.Sprintf("$XDG_CONFIG_HOME/%v/", appName),
+			fmt.Sprintf("$HOME/.config/%v/", appName),
+			".",
+		}
+
+		setupDefaultConfigPaths(appName, searchPaths)
+		slog.Info("Using default config search paths", "searchPaths", searchPaths)
 	}
 
 	err := viper.ReadInConfig()
@@ -46,15 +55,13 @@ func ParseConfig(appName string, configFileOverride string) (*FeedrrrConfig, err
 	return c, nil
 }
 
-func setupDefaultConfigPaths(appName string) {
+func setupDefaultConfigPaths(appName string, searchPaths []string) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(fmt.Sprintf("/etc/%v/", appName))
 
-	// respect XDG base directory specification https://specifications.freedesktop.org/basedir/latest/#variables
-	viper.AddConfigPath(fmt.Sprintf("$XDG_CONFIG_HOME/%v/", appName))
-	viper.AddConfigPath(fmt.Sprintf("$HOME/.config/%v/", appName))
-	viper.AddConfigPath(".")
+	for _, searchPath := range searchPaths {
+		viper.AddConfigPath(searchPath)
+	}
 
 	viper.SetEnvPrefix(appName)
 	viper.AutomaticEnv()
