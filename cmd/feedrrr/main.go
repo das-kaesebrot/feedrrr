@@ -24,7 +24,7 @@ func parseLogLevelFromString(levelStr string) (slog.Level, error) {
 		return slog.LevelWarn, nil
 	case "error":
 		return slog.LevelError, nil
-	case "info":
+	case "info", "":
 		return slog.LevelInfo, nil
 	default:
 		return slog.LevelInfo, fmt.Errorf("Couldn't parse '%s' as a valid log level, defaulting to 'info'", levelStr)
