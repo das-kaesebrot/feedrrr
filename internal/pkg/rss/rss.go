@@ -36,16 +36,20 @@ func PollFeed(ctx context.Context, lastExecutionTime *time.Time, feedURL *url.UR
 
 		slog.Debug("Found new item", "title", item.Title, "published", item.PublishedParsed)
 		content := item.Content
+		if content == "" {
+			content = item.Description
+		}
+		link := item.Link
 
 		if usePlainText {
 			content = html2text.HTML2Text(content)
 		}
 
 		if sendBatched {
-			router.Enqueue(fmt.Sprintf("%s\n\n%s", item.Title, item.Content))
+			router.Enqueue(fmt.Sprintf("%s\n\n%s", item.Title, content))
 		} else {
 			params.SetTitle(fmt.Sprintf("%s%s", titlePrefix, item.Title))
-			router.Send(item.Content, params)
+			router.Send(item.Title+"\n"+link+"\n\n"+content, params)
 		}
 	}
 
