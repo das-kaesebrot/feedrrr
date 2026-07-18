@@ -12,14 +12,21 @@ COPY . .
 # https://jerrynsh.com/3-easy-ways-to-add-version-flag-in-go/
 RUN go build -v -ldflags "-X 'main.Version=${VERSION}'" -o /usr/local/bin/app ./cmd/feedrrr/main.go
 
-FROM scratch
+FROM docker.io/library/alpine@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
+ARG APP_WORKDIR="/var/opt/feedrrr"
 ARG RUN_UID="10021"
 ARG RUN_USER="feedrrr"
 
-COPY --from=build /usr/local/bin/app feedrrr
-COPY contrib/passwd /etc/passwd
+RUN apk add --no-cache tzdata
+RUN mkdir -pv "${APP_WORKDIR}"
+RUN addgroup -g ${RUN_UID} ${RUN_USER} && \
+    adduser -h ${APP_WORKDIR} -u ${RUN_UID} -G ${RUN_USER} -s /bin/false -D ${RUN_USER} && \
+    chown -R ${RUN_USER}:${RUN_USER} "${APP_WORKDIR}"
+WORKDIR ${APP_WORKDIR}
+
+COPY --from=build /usr/local/bin/app /usr/local/bin/feedrrr
 COPY contrib/config.empty.yml /etc/feedrrr/config.yml
 USER ${RUN_USER}
 
-CMD ["./feedrrr"]
+CMD ["feedrrr"]
