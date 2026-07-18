@@ -79,7 +79,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	s, err := scheduler.SetupJobs(ctx, &c.Jobs, &jobSinks)
+	s, err := scheduler.SetupJobs(&ctx, &c.Jobs, &jobSinks)
 	if err != nil {
 		utility.HandleErr("Error setting up scheduled jobs", err)
 	}
