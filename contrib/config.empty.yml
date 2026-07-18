@@ -1,0 +1,13 @@
+jobs:
+  # lobsters:
+  #   source: https://lobste.rs/rss
+  #   schedule: "0 */3 * * *"
+  #   sinks:
+  #     - telegram
+  #     - email
+  #   prefix: LOBER
+  #   plaintext: true
+
+sinks:
+  # telegram: telegram://bottoken?chats=chatid
+  # email: smtp://user:password@smtp.example.com:587/?from=alerts@example.com&to=me@example.com
