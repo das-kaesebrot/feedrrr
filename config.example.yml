@@ -1,0 +1,28 @@
+jobs:
+  hacker-news:
+    source: https://hnrss.org/best
+    schedule: "0 */2 * * *"
+    sinks:
+      - telegram
+    prefix: HN
+    plaintext: true
+
+  lobsters:
+    source: https://lobste.rs/rss
+    schedule: "0 */3 * * *"
+    sinks:
+      - telegram
+      - email
+    prefix: LOBER
+    plaintext: true
+
+  my-blog:
+    source: https://example.com/feed.xml
+    schedule: "0 9 * * 1-5"
+    sinks:
+      - telegram
+    prefix: "[Blog]"
+
+sinks:
+  telegram: telegram://bottoken?chats=chatid
+  email: smtp://user:password@smtp.example.com:587/?from=alerts@example.com&to=me@example.com
