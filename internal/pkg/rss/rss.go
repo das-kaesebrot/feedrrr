@@ -45,12 +45,15 @@ func PollFeed(ctx context.Context, lastExecutionTime *time.Time, feedURL *url.UR
 			content = html2text.HTML2Text(content)
 		}
 
+		msg := fmt.Sprintf("%s\n%s\n\n%s", item.Title, link, content)
+
 		if sendBatched {
-			router.Enqueue(fmt.Sprintf("%s\n\n%s", item.Title, content))
-		} else {
-			params.SetTitle(fmt.Sprintf("%s%s", titlePrefix, item.Title))
-			router.Send(item.Title+"\n"+link+"\n\n"+content, params)
+			router.Enqueue(msg)
+			continue
 		}
+
+		params.SetTitle(fmt.Sprintf("%s%s", titlePrefix, item.Title))
+		router.Send(msg, params)
 	}
 
 	*lastExecutionTime = now
