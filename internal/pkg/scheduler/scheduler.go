@@ -46,11 +46,12 @@ func SetupJobs(jobConfigs *map[string]config.JobConfig, jobSinks *map[string]*ro
 			scheduleSplit = scheduleSplit[1:]
 		}
 		withSeconds := len(scheduleSplit) > 5
+		logger := slog.Default().With("job", name)
 
 		j, err := s.NewJob(
 			gocron.CronJob(config.Schedule, withSeconds),
 			gocron.NewTask(func(ctx context.Context) {
-				rss.PollFeed(ctx, &lastExecutionTime, url, router, false, config.UsePlainText, prefix)
+				rss.PollFeed(ctx, logger, &lastExecutionTime, url, router, false, config.UsePlainText, prefix)
 			}),
 		)
 		if err != nil {

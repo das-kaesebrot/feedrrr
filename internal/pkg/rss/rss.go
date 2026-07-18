@@ -13,7 +13,7 @@ import (
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
 
-func PollFeed(ctx context.Context, lastExecutionTime *time.Time, feedURL *url.URL, router *router.ServiceRouter, sendBatched bool, usePlainText bool, titlePrefix string) {
+func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.Time, feedURL *url.URL, router *router.ServiceRouter, sendBatched bool, usePlainText bool, titlePrefix string) {
 	params := new(types.Params{})
 	params.SetTitle(fmt.Sprintf("%sNew items in feed", titlePrefix))
 
@@ -22,19 +22,19 @@ func PollFeed(ctx context.Context, lastExecutionTime *time.Time, feedURL *url.UR
 	}
 
 	now := time.Now()
-	slog.Debug("Polling feed", "now", now.String(), "lastExecutionTime", lastExecutionTime.String(), "feedURL", feedURL)
+	logger.Debug("Polling feed", "now", now.String(), "lastExecutionTime", lastExecutionTime.String(), "feedURL", feedURL)
 
 	fp := gofeed.NewParser()
 	feed, _ := fp.ParseURLWithContext(feedURL.String(), ctx)
 
-	slog.Debug("Found items in feed", "amount", len(feed.Items))
+	logger.Debug("Found items in feed", "amount", len(feed.Items))
 
 	for _, item := range feed.Items {
 		if item.PublishedParsed.Before(*lastExecutionTime) || item.PublishedParsed.After(now) {
 			continue
 		}
 
-		slog.Debug("Found new item", "title", item.Title, "published", item.PublishedParsed)
+		logger.Info("Found new item", "title", item.Title, "published", item.PublishedParsed)
 		content := item.Content
 		if content == "" {
 			content = item.Description
