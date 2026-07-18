@@ -11,6 +11,7 @@ import (
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
 	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/rss"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 
@@ -50,9 +51,24 @@ func SetupJobs(ctx context.Context, jobConfigs *map[string]config.JobConfig, job
 
 		j, err := s.NewJob(
 			gocron.CronJob(config.Schedule, withSeconds),
-			gocron.NewTask(func(ctx context.Context) {
-				rss.PollFeed(ctx, logger, &lastExecutionTime, url, router, false, config.UsePlainText, prefix)
+			gocron.NewTask(func(contxt context.Context) error {
+				return rss.PollFeed(contxt, logger, &lastExecutionTime, url, router, false, config.UsePlainText, prefix)
 			}),
+			gocron.WithName(name),
+			gocron.WithContext(ctx),
+			gocron.WithEventListeners(
+				gocron.BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
+					slog.Debug("Running job", "jobID", jobID, "jobName", jobName)
+				}),
+				gocron.AfterJobRuns(func(jobID uuid.UUID, jobName string) {
+					slog.Debug("Job ran successfully", "jobID", jobID, "jobName", jobName)
+				}),
+				gocron.AfterJobRunsWithError(
+					func(jobID uuid.UUID, jobName string, err error) {
+						slog.Error("Job returned an error", "jobID", jobID, "jobName", jobName, "err", err)
+					},
+				),
+			),
 		)
 		if err != nil {
 			return nil, err

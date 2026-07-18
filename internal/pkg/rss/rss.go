@@ -2,6 +2,7 @@ package rss
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -13,7 +14,7 @@ import (
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
 
-func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.Time, feedURL *url.URL, router *router.ServiceRouter, sendBatched bool, usePlainText bool, titlePrefix string) {
+func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.Time, feedURL *url.URL, router *router.ServiceRouter, sendBatched bool, usePlainText bool, titlePrefix string) error {
 	params := new(types.Params{})
 	params.SetTitle(fmt.Sprintf("%sNew items in feed", titlePrefix))
 
@@ -25,11 +26,18 @@ func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.
 	logger.Debug("Polling feed", "now", now.String(), "lastExecutionTime", lastExecutionTime.String(), "feedURL", feedURL)
 
 	fp := gofeed.NewParser()
-	feed, _ := fp.ParseURLWithContext(feedURL.String(), ctx)
+	feed, err := fp.ParseURLWithContext(feedURL.String(), ctx)
+	if err != nil {
+		return err
+	}
 
-	logger.Debug("Found items in feed", "amount", len(feed.Items))
+	logger.Debug("Got feed", "amount", len(feed.Items))
 
 	for _, item := range feed.Items {
+		if item.PublishedParsed == nil {
+			logger.Warn("Got item without parseable publish date!", "publishedStr", "GUID", item.GUID, item.Published)
+		}
+
 		if item.PublishedParsed.Before(*lastExecutionTime) || item.PublishedParsed.After(now) {
 			continue
 		}
@@ -53,8 +61,13 @@ func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.
 		}
 
 		params.SetTitle(fmt.Sprintf("%s%s", titlePrefix, item.Title))
-		router.Send(msg, params)
+		errs := router.Send(msg, params)
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
 	}
 
 	*lastExecutionTime = now
+
+	return nil
 }
