@@ -9,16 +9,16 @@ import (
 )
 
 type FeedrrrConfig struct {
-	Jobs  map[string]JobConfig `yaml:"jobs"`
-	Sinks map[string][]string  `yaml:"sinks"`
+	Jobs  map[string]JobConfig `mapstructure:"jobs"`
+	Sinks map[string][]string  `mapstructure:"sinks"`
 }
 
 type JobConfig struct {
-	Sinks     []string `yaml:"sinks"`
-	Schedule  string   `yaml:"schedule"`
-	Source    string   `yaml:"source"`
-	PlainText bool     `yaml:"plaintext,omitempty"`
-	Prefix    string   `yaml:"prefix,omitempty"` // title prefix
+	Sinks        []string `mapstructure:"sinks"`
+	Schedule     string   `mapstructure:"schedule"`
+	Source       string   `mapstructure:"source"`
+	UsePlainText bool     `mapstructure:"plaintext,omitempty"`
+	Prefix       string   `mapstructure:"prefix,omitempty"` // title prefix
 }
 
 func ParseConfig(appName string, configFileOverride string) (*FeedrrrConfig, error) {

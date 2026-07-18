@@ -50,7 +50,7 @@ func SetupJobs(jobConfigs *map[string]config.JobConfig, jobSinks *map[string]*ro
 		j, err := s.NewJob(
 			gocron.CronJob(config.Schedule, withSeconds),
 			gocron.NewTask(func(ctx context.Context) {
-				rss.PollFeed(ctx, &lastExecutionTime, url, router, false, config.PlainText, prefix)
+				rss.PollFeed(ctx, &lastExecutionTime, url, router, false, config.UsePlainText, prefix)
 			}),
 		)
 		if err != nil {
