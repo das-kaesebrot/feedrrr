@@ -17,7 +17,8 @@ type JobConfig struct {
 	Sinks     []string `yaml:"sinks"`
 	Schedule  string   `yaml:"schedule"`
 	Source    string   `yaml:"source"`
-	PlainText bool     `yaml:"plaintext"`
+	PlainText bool     `yaml:"plaintext,omitempty"`
+	Prefix    string   `yaml:"prefix,omitempty"` // title prefix
 }
 
 func ParseConfig(appName string, configFileOverride string) (*FeedrrrConfig, error) {
