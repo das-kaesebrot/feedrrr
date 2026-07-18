@@ -55,7 +55,7 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 				return rss.PollFeed(contxt, logger, &lastExecutionTime, url, router, false, config.UsePlainText, prefix)
 			}),
 			gocron.WithName(name),
-			gocron.WithContext(ctx),
+			gocron.WithContext(*ctx),
 			gocron.WithEventListeners(
 				gocron.BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
 					slog.Debug("Running job", "jobID", jobID, "jobName", jobName)
