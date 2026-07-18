@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -13,25 +14,22 @@ type FeedrrrConfig struct {
 }
 
 type JobConfig struct {
-	Sinks    []string `yaml:"sinks"`
-	Schedule string   `yaml:"schedule"`
-	Source   string   `yaml:"source"`
+	Sinks     []string `yaml:"sinks"`
+	Schedule  string   `yaml:"schedule"`
+	Source    string   `yaml:"source"`
+	PlainText bool     `yaml:"plaintext"`
 }
 
-func ParseConfig(appName string) (*FeedrrrConfig, error) {
+func ParseConfig(appName string, configFileOverride string) (*FeedrrrConfig, error) {
 	appName = strings.ToValidUTF8(strings.ToLower(appName), "")
 
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(fmt.Sprintf("/etc/%v/", appName))
-
-	// respect XDG base directory specification https://specifications.freedesktop.org/basedir/latest/#variables
-	viper.AddConfigPath(fmt.Sprintf("$XDG_CONFIG_HOME/%v/", appName))
-	viper.AddConfigPath(fmt.Sprintf("$HOME/.config/%v/", appName))
-	viper.AddConfigPath(".")
-
-	viper.SetEnvPrefix(appName)
-	viper.AutomaticEnv()
+	if configFileOverride != "" {
+		viper.SetConfigFile(configFileOverride)
+		slog.Info("Using explicit config file path", "configFileOverride", configFileOverride)
+	} else {
+		setupDefaultConfigPaths(appName)
+		slog.Info("Using default config search paths")
+	}
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -45,4 +43,18 @@ func ParseConfig(appName string) (*FeedrrrConfig, error) {
 	}
 
 	return c, nil
+}
+
+func setupDefaultConfigPaths(appName string) {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(fmt.Sprintf("/etc/%v/", appName))
+
+	// respect XDG base directory specification https://specifications.freedesktop.org/basedir/latest/#variables
+	viper.AddConfigPath(fmt.Sprintf("$XDG_CONFIG_HOME/%v/", appName))
+	viper.AddConfigPath(fmt.Sprintf("$HOME/.config/%v/", appName))
+	viper.AddConfigPath(".")
+
+	viper.SetEnvPrefix(appName)
+	viper.AutomaticEnv()
 }
