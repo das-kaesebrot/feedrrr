@@ -93,6 +93,12 @@ jobs:
     
     # Title prefix (optional)
     prefix: "[New Post]"
+
+    # Change detection mode (optional, default: pubdate)
+    # can be either "guid" or "pubdate"
+    # pubdate: articles published between last cronjob run and current cron job run will be detected as new
+    # guid: articles that have appeared after an article with the guid seen during last cronjob run will be detected as new
+    change_mode: guid
 ```
 
 The `schedule` field accepts standard 5-field cron expressions (`minute hour dom month dow`) as well as 6-field expressions with seconds (`second minute hour dom month dow`). Timezone-aware schedules are supported via a `TZ=` or `CRON_TZ=` prefix (e.g. `TZ=Europe/Berlin 0 9 * * *`).

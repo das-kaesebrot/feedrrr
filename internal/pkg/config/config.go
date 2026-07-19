@@ -8,17 +8,51 @@ import (
 	"github.com/spf13/viper"
 )
 
+type ChangeDetectionMode int
+
+const (
+	ModePubDate ChangeDetectionMode = iota
+	ModeGUID
+)
+
+var changeModeMap = map[string]ChangeDetectionMode{
+	"pubdate": ModePubDate,
+	"guid":    ModeGUID,
+}
+
 type FeedrrrConfig struct {
 	Jobs  map[string]JobConfig `mapstructure:"jobs"`
 	Sinks map[string][]string  `mapstructure:"sinks"`
 }
 
 type JobConfig struct {
-	Sinks        []string `mapstructure:"sinks"`
-	Schedule     string   `mapstructure:"schedule"`
-	Source       string   `mapstructure:"source"`
-	UsePlainText bool     `mapstructure:"plaintext,omitempty"`
-	Prefix       string   `mapstructure:"prefix,omitempty"` // title prefix
+	Sinks        []string            `mapstructure:"sinks"`
+	Schedule     string              `mapstructure:"schedule"`
+	Source       string              `mapstructure:"source"`
+	UsePlainText bool                `mapstructure:"plaintext,omitempty"`
+	Prefix       string              `mapstructure:"prefix,omitempty"` // title prefix
+	ChangeMode   ChangeDetectionMode `mapstructure:"change_mode"`
+}
+
+func (t *ChangeDetectionMode) UnmarshalMapstructure(input any) error {
+	str, ok := input.(string)
+	if !ok {
+		return fmt.Errorf("expected string, got %T", input)
+	}
+
+	if str == "" {
+		*t = ModePubDate
+		return nil
+	}
+
+	mappedVal, ok := changeModeMap[strings.TrimSpace(str)]
+
+	if !ok {
+		return fmt.Errorf("Invalid value for change detection mode: %s", str)
+	}
+
+	*t = mappedVal
+	return nil
 }
 
 func ParseConfig(appName string, configFileOverride string) (*FeedrrrConfig, error) {

@@ -8,13 +8,14 @@ import (
 	"net/url"
 	"time"
 
+	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
 	"github.com/k3a/html2text"
 	"github.com/mmcdole/gofeed"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
 
-func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.Time, feedURL *url.URL, router *router.ServiceRouter, sendBatched bool, usePlainText bool, titlePrefix string) error {
+func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.Time, lastGUID *string, feedURL *url.URL, router *router.ServiceRouter, sendBatched bool, usePlainText bool, titlePrefix string, changeDetectionMode config.ChangeDetectionMode) error {
 	params := new(types.Params{})
 	params.SetTitle(fmt.Sprintf("%sNew items in feed", titlePrefix))
 
@@ -33,13 +34,30 @@ func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.
 
 	logger.Debug("Got feed", "amount", len(feed.Items))
 
+	currentTopGUID := ""
+	if len(feed.Items) > 0 {
+		currentTopGUID = feed.Items[0].GUID
+	}
+
+	if *lastGUID == "" {
+		*lastGUID = currentTopGUID
+	}
+
+itemLoop:
 	for _, item := range feed.Items {
 		if item.PublishedParsed == nil {
 			logger.Warn("Got item without parseable publish date!", "publishedStr", "GUID", item.GUID, item.Published)
 		}
 
-		if item.PublishedParsed.Before(*lastExecutionTime) || item.PublishedParsed.After(now) {
-			continue
+		switch changeDetectionMode {
+		case config.ModePubDate:
+			if item.PublishedParsed.Before(*lastExecutionTime) || item.PublishedParsed.After(now) {
+				continue itemLoop
+			}
+		case config.ModeGUID:
+			if item.GUID == *lastGUID {
+				break itemLoop
+			}
 		}
 
 		logger.Info("Found new item", "title", item.Title, "published", item.PublishedParsed)
@@ -68,6 +86,7 @@ func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.
 	}
 
 	*lastExecutionTime = now
+	*lastGUID = currentTopGUID
 
 	return nil
 }

@@ -24,6 +24,7 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 	for name, config := range *jobConfigs {
 		router, exists := (*jobSinks)[name]
 		lastExecutionTime := time.Now()
+		lastGUID := ""
 
 		if !exists {
 			return nil, fmt.Errorf("Couldn't get associated job router!")
@@ -52,7 +53,7 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 		j, err := s.NewJob(
 			gocron.CronJob(config.Schedule, withSeconds),
 			gocron.NewTask(func(contxt context.Context) error {
-				return rss.PollFeed(contxt, logger, &lastExecutionTime, url, router, false, config.UsePlainText, prefix)
+				return rss.PollFeed(contxt, logger, &lastExecutionTime, &lastGUID, url, router, false, config.UsePlainText, prefix, config.ChangeMode)
 			}),
 			gocron.WithName(name),
 			gocron.WithContext(*ctx),
