@@ -67,7 +67,6 @@ func (j *RSSJob) PollFeed(ctx context.Context) error {
 		*j.lastGUID = currentTopGUID
 	}
 
-itemLoop:
 	for _, item := range feed.Items {
 		if item.PublishedParsed == nil {
 			j.logger.Warn("Got item without parseable publish date!", "publishedStr", "GUID", item.GUID, item.Published)
@@ -75,12 +74,16 @@ itemLoop:
 
 		switch j.opts.ChangeDetectionMode {
 		case config.ModePubDate:
-			if item.PublishedParsed.Before(*j.lastExecutionTime) || item.PublishedParsed.After(now) {
-				continue itemLoop
+			if item.PublishedParsed.Before(*j.lastExecutionTime) {
+				continue
+			} else if item.PublishedParsed.After(now) {
+				*j.lastExecutionTime = now
+				return nil
 			}
 		case config.ModeGUID:
 			if *j.lastGUID == item.GUID {
-				break itemLoop
+				*j.lastGUID = currentTopGUID
+				return nil
 			}
 		}
 
