@@ -1,23 +1,43 @@
 package rss
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/url"
 	"time"
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/config"
-	"github.com/k3a/html2text"
 	"github.com/mmcdole/gofeed"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
 
+type RSSItem struct {
+	Title       string
+	PubDate     time.Time
+	Content     string
+	Description string
+	GUID        string
+	Link        string
+}
+
+func RSSItemFromGoFeedItem(item *gofeed.Item) *RSSItem {
+	return &RSSItem{
+		Title:       item.Title,
+		PubDate:     *item.PublishedParsed,
+		Content:     item.Content,
+		Description: item.Description,
+		GUID:        item.GUID,
+		Link:        item.Link,
+	}
+}
+
 type RSSJobOpts struct {
 	SendBatched         bool
-	UsePlainText        bool
 	TitlePrefix         string
 	ChangeDetectionMode config.ChangeDetectionMode
 }
@@ -29,12 +49,13 @@ type RSSJob struct {
 	feedURL           *url.URL
 	router            *router.ServiceRouter
 	opts              *RSSJobOpts
+	tmpl              *template.Template
 }
 
-func NewJob(logger slog.Logger, url url.URL, router *router.ServiceRouter, opts RSSJobOpts) *RSSJob {
+func NewJob(logger slog.Logger, url url.URL, router *router.ServiceRouter, tmpl *template.Template, opts RSSJobOpts) *RSSJob {
 	now := time.Now()
 	lastGUID := ""
-	return &RSSJob{logger: &logger, lastExecutionTime: &now, lastGUID: &lastGUID, feedURL: &url, router: router, opts: &opts}
+	return &RSSJob{logger: &logger, lastExecutionTime: &now, lastGUID: &lastGUID, feedURL: &url, router: router, tmpl: tmpl, opts: &opts}
 }
 
 func (j *RSSJob) PollFeed(ctx context.Context) error {
@@ -92,23 +113,24 @@ func (j *RSSJob) PollFeed(ctx context.Context) error {
 		if content == "" {
 			content = item.Description
 		}
-		link := item.Link
 
-		if j.opts.UsePlainText {
-			content = html2text.HTML2Text(content)
+		rssItem := RSSItemFromGoFeedItem(item)
+
+		var msgBytes bytes.Buffer
+		err := j.tmpl.Execute(&msgBytes, rssItem)
+		if err != nil {
+			return fmt.Errorf("Error encountered while rendering RSS item to message: %w", err)
 		}
 
-		msg := fmt.Sprintf("%s\n%s\n\n%s", item.Title, link, content)
-
 		if j.opts.SendBatched {
-			j.router.Enqueue(msg)
+			j.router.Enqueue(msgBytes.String())
 			continue
 		}
 
 		params.SetTitle(fmt.Sprintf("%s%s", j.opts.TitlePrefix, item.Title))
 
 		routerErrs := []error{}
-		for _, err := range j.router.Send(msg, params) {
+		for _, err := range j.router.Send(msgBytes.String(), params) {
 			if err != nil {
 				routerErrs = append(routerErrs, err)
 			}

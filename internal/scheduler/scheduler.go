@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/url"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"dev.kaesebrot.eu/go/feedrrr/internal/rss"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/k3a/html2text"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 
@@ -20,43 +22,56 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 		return nil, err
 	}
 
-	for name, config := range *jobConfigs {
+	for name, cfg := range *jobConfigs {
 		router, exists := (*jobSinks)[name]
 
 		if !exists {
 			return nil, fmt.Errorf("Couldn't get associated job router!")
 		}
 
-		url, err := url.Parse(config.Source)
+		url, err := url.Parse(cfg.Source)
 		if err != nil {
 			return nil, err
 		}
 
-		prefix := config.Prefix
-
+		prefix := cfg.Prefix
 		if prefix != "" {
 			prefix += " "
 		}
 
+		templateStr := cfg.MessageTemplate
+		if templateStr == "" {
+			templateStr = config.DefaultMessageTemplate
+		}
+
+		tmpl, err := template.New("rss_message").Funcs(
+			template.FuncMap{
+				"html2text": html2text.HTML2Text,
+			},
+		).Parse(templateStr)
+
+		if err != nil {
+			return nil, err
+		}
+
 		logger := slog.Default().With("job", name)
 
-		rssJob := rss.NewJob(*logger, *url, router, rss.RSSJobOpts{
+		rssJob := rss.NewJob(*logger, *url, router, tmpl, rss.RSSJobOpts{
 			SendBatched:         false,
-			UsePlainText:        config.UsePlainText,
 			TitlePrefix:         prefix,
-			ChangeDetectionMode: config.ChangeMode,
+			ChangeDetectionMode: cfg.ChangeMode,
 		})
 
 		// format: * * * * *   -> without seconds (5 elements)
 		//         * * * * * * -> with seconds (6 elements)
-		scheduleSplit := strings.Split(config.Schedule, " ")
+		scheduleSplit := strings.Split(cfg.Schedule, " ")
 		if strings.HasPrefix(scheduleSplit[0], "TZ=") || strings.HasPrefix(scheduleSplit[0], "CRON_TZ=") {
 			scheduleSplit = scheduleSplit[1:]
 		}
 		withSeconds := len(scheduleSplit) > 5
 
 		j, err := s.NewJob(
-			gocron.CronJob(config.Schedule, withSeconds),
+			gocron.CronJob(cfg.Schedule, withSeconds),
 			gocron.NewTask(func(contxt context.Context) error {
 				return rssJob.PollFeed(contxt)
 			}),
@@ -80,7 +95,7 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 			return nil, err
 		}
 
-		slog.Info("Added cronjob to scheduler", "name", name, "id", j.ID(), "schedule", config.Schedule)
+		slog.Info("Added cronjob to scheduler", "name", name, "id", j.ID(), "schedule", cfg.Schedule)
 	}
 
 	return s, nil

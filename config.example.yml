@@ -5,7 +5,6 @@ jobs:
     sinks:
       - telegram
     prefix: HN
-    plaintext: true
 
   lobsters:
     source: https://lobste.rs/rss
@@ -14,7 +13,6 @@ jobs:
       - telegram
       - email
     prefix: LOBER
-    plaintext: true
 
   my-blog:
     source: https://example.com/feed.xml
@@ -23,6 +21,13 @@ jobs:
       - telegram
     prefix: "[Blog]"
     change_mode: pubdate
+    msg_template: |
+      Item with a custom feed message appeared:
+      {{.Title}}
+
+      {{ html2text (or .Content .Description "no content") }}
+
+      {{.Link}}
 
 sinks:
   telegram: telegram://bottoken?chats=chatid

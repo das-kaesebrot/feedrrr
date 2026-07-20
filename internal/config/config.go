@@ -15,7 +15,15 @@ const (
 	ModeGUID
 )
 
-const defaultChangeDetectionMode = ModeGUID
+const (
+	DefaultChangeDetectionMode        = ModeGUID
+	DefaultMessageTemplate     string = `{{.Title}} ({{.PubDate}})
+
+{{ html2text (or .Content .Description "no content") }}
+
+{{.Link}}
+`
+)
 
 var changeModeMap = map[string]ChangeDetectionMode{
 	"pubdate": ModePubDate,
@@ -28,12 +36,13 @@ type FeedrrrConfig struct {
 }
 
 type JobConfig struct {
-	Sinks        []string            `mapstructure:"sinks"`
-	Schedule     string              `mapstructure:"schedule"`
-	Source       string              `mapstructure:"source"`
-	UsePlainText bool                `mapstructure:"plaintext,omitempty"`
-	Prefix       string              `mapstructure:"prefix,omitempty"` // title prefix
-	ChangeMode   ChangeDetectionMode `mapstructure:"change_mode"`
+	Sinks           []string            `mapstructure:"sinks"`
+	Schedule        string              `mapstructure:"schedule"`
+	Source          string              `mapstructure:"source"`
+	UsePlainText    bool                `mapstructure:"plaintext,omitempty"`
+	Prefix          string              `mapstructure:"prefix,omitempty"` // title prefix
+	ChangeMode      ChangeDetectionMode `mapstructure:"change_mode"`
+	MessageTemplate string              `mapstructure:"msg_template"`
 }
 
 func (t *ChangeDetectionMode) UnmarshalMapstructure(input any) error {
@@ -43,7 +52,7 @@ func (t *ChangeDetectionMode) UnmarshalMapstructure(input any) error {
 	}
 
 	if str == "" {
-		*t = defaultChangeDetectionMode
+		*t = DefaultChangeDetectionMode
 		return nil
 	}
 
