@@ -15,80 +15,102 @@ import (
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
 
-func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.Time, lastGUID *string, feedURL *url.URL, router *router.ServiceRouter, sendBatched bool, usePlainText bool, titlePrefix string, changeDetectionMode config.ChangeDetectionMode) error {
-	params := new(types.Params{})
-	params.SetTitle(fmt.Sprintf("%sNew items in feed", titlePrefix))
+type RSSJobOpts struct {
+	SendBatched         bool
+	UsePlainText        bool
+	TitlePrefix         string
+	ChangeDetectionMode config.ChangeDetectionMode
+}
 
-	if sendBatched {
-		defer router.Flush(params)
+type RSSJob struct {
+	logger            *slog.Logger
+	lastExecutionTime *time.Time
+	lastGUID          *string
+	feedURL           *url.URL
+	router            *router.ServiceRouter
+	opts              *RSSJobOpts
+}
+
+func NewJob(logger slog.Logger, url url.URL, router *router.ServiceRouter, opts RSSJobOpts) *RSSJob {
+	now := time.Now()
+	lastGUID := ""
+	return &RSSJob{logger: &logger, lastExecutionTime: &now, lastGUID: &lastGUID, feedURL: &url, router: router, opts: &opts}
+}
+
+func (j *RSSJob) PollFeed(ctx context.Context) error {
+	params := new(types.Params{})
+	params.SetTitle(fmt.Sprintf("%sNew items in feed", j.opts.TitlePrefix))
+
+	if j.opts.SendBatched {
+		defer j.router.Flush(params)
 	}
 
 	now := time.Now()
-	logger.Debug("Polling feed", "now", now.String(), "lastExecutionTime", lastExecutionTime.String(), "feedURL", feedURL, "lastGUID", *lastGUID)
+	j.logger.Debug("Polling feed", "now", now.String(), "lastExecutionTime", j.lastExecutionTime.String(), "lastGUID", *j.lastGUID, "feedURL", j.feedURL)
 
 	fp := gofeed.NewParser()
-	feed, err := fp.ParseURLWithContext(feedURL.String(), ctx)
+	feed, err := fp.ParseURLWithContext(j.feedURL.String(), ctx)
 	if err != nil {
 		return err
 	}
 
-	logger.Debug("Got feed", "amount", len(feed.Items))
+	j.logger.Debug("Got feed", "amount", len(feed.Items))
 
 	if len(feed.Items) == 0 {
-		*lastExecutionTime = now
-		*lastGUID = ""
+		*j.lastExecutionTime = now
+		*j.lastGUID = ""
 		return nil
 	}
 
 	currentTopGUID := feed.Items[0].GUID
-	if *lastGUID == "" {
-		*lastGUID = currentTopGUID
+	if *j.lastGUID == "" {
+		*j.lastGUID = currentTopGUID
 	}
 
 itemLoop:
 	for _, item := range feed.Items {
 		if item.PublishedParsed == nil {
-			logger.Warn("Got item without parseable publish date!", "publishedStr", "GUID", item.GUID, item.Published)
+			j.logger.Warn("Got item without parseable publish date!", "publishedStr", "GUID", item.GUID, item.Published)
 		}
 
-		switch changeDetectionMode {
+		switch j.opts.ChangeDetectionMode {
 		case config.ModePubDate:
-			if item.PublishedParsed.Before(*lastExecutionTime) || item.PublishedParsed.After(now) {
+			if item.PublishedParsed.Before(*j.lastExecutionTime) || item.PublishedParsed.After(now) {
 				continue itemLoop
 			}
 		case config.ModeGUID:
-			if *lastGUID == item.GUID {
+			if *j.lastGUID == item.GUID {
 				break itemLoop
 			}
 		}
 
-		logger.Info("Found new item", "title", item.Title, "published", item.PublishedParsed, "guid", item.GUID)
+		j.logger.Info("Found new item", "title", item.Title, "published", item.PublishedParsed, "guid", item.GUID)
 		content := item.Content
 		if content == "" {
 			content = item.Description
 		}
 		link := item.Link
 
-		if usePlainText {
+		if j.opts.UsePlainText {
 			content = html2text.HTML2Text(content)
 		}
 
 		msg := fmt.Sprintf("%s\n%s\n\n%s", item.Title, link, content)
 
-		if sendBatched {
-			router.Enqueue(msg)
+		if j.opts.SendBatched {
+			j.router.Enqueue(msg)
 			continue
 		}
 
-		params.SetTitle(fmt.Sprintf("%s%s", titlePrefix, item.Title))
-		errs := router.Send(msg, params)
+		params.SetTitle(fmt.Sprintf("%s%s", j.opts.TitlePrefix, item.Title))
+		errs := j.router.Send(msg, params)
 		if len(errs) > 0 {
 			return errors.Join(errs...)
 		}
 	}
 
-	*lastExecutionTime = now
-	*lastGUID = currentTopGUID
+	*j.lastExecutionTime = now
+	*j.lastGUID = currentTopGUID
 
 	return nil
 }

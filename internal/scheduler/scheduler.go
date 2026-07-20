@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
-	"time"
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/config"
 	"dev.kaesebrot.eu/go/feedrrr/internal/rss"
@@ -23,8 +22,6 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 
 	for name, config := range *jobConfigs {
 		router, exists := (*jobSinks)[name]
-		lastExecutionTime := time.Now()
-		lastGUID := ""
 
 		if !exists {
 			return nil, fmt.Errorf("Couldn't get associated job router!")
@@ -41,6 +38,15 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 			prefix += " "
 		}
 
+		logger := slog.Default().With("job", name)
+
+		rssJob := rss.NewJob(*logger, *url, router, rss.RSSJobOpts{
+			SendBatched:         false,
+			UsePlainText:        config.UsePlainText,
+			TitlePrefix:         config.Prefix,
+			ChangeDetectionMode: config.ChangeMode,
+		})
+
 		// format: * * * * *   -> without seconds (5 elements)
 		//         * * * * * * -> with seconds (6 elements)
 		scheduleSplit := strings.Split(config.Schedule, " ")
@@ -48,12 +54,11 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 			scheduleSplit = scheduleSplit[1:]
 		}
 		withSeconds := len(scheduleSplit) > 5
-		logger := slog.Default().With("job", name)
 
 		j, err := s.NewJob(
 			gocron.CronJob(config.Schedule, withSeconds),
 			gocron.NewTask(func(contxt context.Context) error {
-				return rss.PollFeed(contxt, logger, &lastExecutionTime, &lastGUID, url, router, false, config.UsePlainText, prefix, config.ChangeMode)
+				return rssJob.PollFeed(contxt)
 			}),
 			gocron.WithName(name),
 			gocron.WithContext(*ctx),
