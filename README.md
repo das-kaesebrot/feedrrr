@@ -18,14 +18,14 @@ ghcr.io/das-kaesebrot/feedrrr
 
 Example command to run it:
 
-```
-user@machine:~$ docker run --rm -it -v /path/to/config.yml:/etc/feedrrr/config.yml ghcr.io/das-kaesebrot/feedrrr
+```bash
+docker run --rm -it -v /path/to/config.yml:/etc/feedrrr/config.yml ghcr.io/das-kaesebrot/feedrrr
 ```
 
 ### Go install
 
 Or go's install syntax:
-```
+```bash
 go install dev.kaesebrot.eu/go/feedrrr/cmd/feedrrr@latest
 ```
 
@@ -35,7 +35,7 @@ go install dev.kaesebrot.eu/go/feedrrr/cmd/feedrrr@latest
 
 Clone the repository and build the binary:
 
-```
+```bash
 git clone https://github.com/das-kaesebrot/feedrrr.git
 cd feedrrr
 go build -o feedrrr ./cmd/feedrrr
@@ -99,9 +99,53 @@ jobs:
     # pubdate: articles published (specifically, the pubdate value) between last cronjob run and current cron job run will be detected as new
     # guid: articles that have appeared after an article with the guid seen during last cronjob run will be detected as new
     change_mode: guid
+
+    # Item message template (optional, default: see /internal/confg/config.go:DefaultMessageTemplate)
+    # can be a multiline YAML string
+    # Available properties:
+    #
+    # 	Title       string
+    # 	PubDate     time.Time
+    # 	Content     string
+    # 	Description string
+    # 	GUID        string
+    # 	Link        string
+    #
+    # Available functions:
+    #   html2text(html string) string // generates plaintext from html
+    # 
+    msg_template: |
+      Item with a custom feed message appeared:
+      {{.Title}}
+
+      {{ html2text (or .Content .Description "no content") }}
+
+      {{.Link}}
 ```
 
 The `schedule` field accepts standard 5-field cron expressions (`minute hour dom month dow`) as well as 6-field expressions with seconds (`second minute hour dom month dow`). Timezone-aware schedules are supported via a `TZ=` or `CRON_TZ=` prefix (e.g. `TZ=Europe/Berlin 0 9 * * *`).
+
+For the full reference on the templating engine, please see [html/template](https://pkg.go.dev/html/template).
+The default message template is:
+```go
+{{.Title}} ({{.PubDate}})
+
+{{ html2text (or .Content .Description "no content") }}
+
+{{.Link}}
+```
+
+The context for the template is `rss.RSSItem` in [rss.go](./internal/rss/rss.go):
+```go
+type RSSItem struct {
+	Title       string
+	PubDate     time.Time
+	Content     string
+	Description string
+	GUID        string
+	Link        string
+}
+```
 
 ##### Sinks
 
