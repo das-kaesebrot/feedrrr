@@ -94,9 +94,9 @@ jobs:
     # Title prefix (optional)
     prefix: "[New Post]"
 
-    # Change detection mode (optional, default: pubdate)
+    # Change detection mode (optional, default: guid)
     # can be either "guid" or "pubdate"
-    # pubdate: articles published between last cronjob run and current cron job run will be detected as new
+    # pubdate: articles published (specifically, the pubdate value) between last cronjob run and current cron job run will be detected as new
     # guid: articles that have appeared after an article with the guid seen during last cronjob run will be detected as new
     change_mode: guid
 ```

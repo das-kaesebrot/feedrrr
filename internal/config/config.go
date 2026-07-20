@@ -15,6 +15,8 @@ const (
 	ModeGUID
 )
 
+const defaultChangeDetectionMode = ModeGUID
+
 var changeModeMap = map[string]ChangeDetectionMode{
 	"pubdate": ModePubDate,
 	"guid":    ModeGUID,
@@ -41,7 +43,7 @@ func (t *ChangeDetectionMode) UnmarshalMapstructure(input any) error {
 	}
 
 	if str == "" {
-		*t = ModePubDate
+		*t = defaultChangeDetectionMode
 		return nil
 	}
 

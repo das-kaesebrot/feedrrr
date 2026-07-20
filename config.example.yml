@@ -22,6 +22,7 @@ jobs:
     sinks:
       - telegram
     prefix: "[Blog]"
+    change_mode: pubdate
 
 sinks:
   telegram: telegram://bottoken?chats=chatid
