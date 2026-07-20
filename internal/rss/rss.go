@@ -106,9 +106,15 @@ func (j *RSSJob) PollFeed(ctx context.Context) error {
 		}
 
 		params.SetTitle(fmt.Sprintf("%s%s", j.opts.TitlePrefix, item.Title))
-		errs := j.router.Send(msg, params)
-		if len(errs) > 0 {
-			return errors.Join(errs...)
+
+		routerErrs := []error{}
+		for _, err := range j.router.Send(msg, params) {
+			if err != nil {
+				routerErrs = append(routerErrs, err)
+			}
+		}
+		if len(routerErrs) > 0 {
+			return errors.Join(routerErrs...)
 		}
 	}
 
