@@ -43,7 +43,7 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 		rssJob := rss.NewJob(*logger, *url, router, rss.RSSJobOpts{
 			SendBatched:         false,
 			UsePlainText:        config.UsePlainText,
-			TitlePrefix:         config.Prefix,
+			TitlePrefix:         prefix,
 			ChangeDetectionMode: config.ChangeMode,
 		})
 
