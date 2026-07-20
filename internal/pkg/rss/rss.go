@@ -24,7 +24,7 @@ func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.
 	}
 
 	now := time.Now()
-	logger.Debug("Polling feed", "now", now.String(), "lastExecutionTime", lastExecutionTime.String(), "feedURL", feedURL)
+	logger.Debug("Polling feed", "now", now.String(), "lastExecutionTime", lastExecutionTime.String(), "feedURL", feedURL, "lastGUID", *lastGUID)
 
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURLWithContext(feedURL.String(), ctx)
@@ -34,11 +34,13 @@ func PollFeed(ctx context.Context, logger *slog.Logger, lastExecutionTime *time.
 
 	logger.Debug("Got feed", "amount", len(feed.Items))
 
-	currentTopGUID := ""
-	if len(feed.Items) > 0 {
-		currentTopGUID = feed.Items[0].GUID
+	if len(feed.Items) == 0 {
+		*lastExecutionTime = now
+		*lastGUID = ""
+		return nil
 	}
 
+	currentTopGUID := feed.Items[0].GUID
 	if *lastGUID == "" {
 		*lastGUID = currentTopGUID
 	}
@@ -55,12 +57,12 @@ itemLoop:
 				continue itemLoop
 			}
 		case config.ModeGUID:
-			if item.GUID == *lastGUID {
+			if *lastGUID == item.GUID {
 				break itemLoop
 			}
 		}
 
-		logger.Info("Found new item", "title", item.Title, "published", item.PublishedParsed)
+		logger.Info("Found new item", "title", item.Title, "published", item.PublishedParsed, "guid", item.GUID)
 		content := item.Content
 		if content == "" {
 			content = item.Description
