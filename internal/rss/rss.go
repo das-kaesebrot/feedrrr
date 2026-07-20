@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
+	"dev.kaesebrot.eu/go/feedrrr/internal/config"
 	"github.com/k3a/html2text"
 	"github.com/mmcdole/gofeed"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"

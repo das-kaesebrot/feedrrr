@@ -10,10 +10,10 @@ import (
 	"strings"
 	"syscall"
 
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/scheduler"
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/sinks"
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/utility"
+	"dev.kaesebrot.eu/go/feedrrr/internal/config"
+	"dev.kaesebrot.eu/go/feedrrr/internal/scheduler"
+	"dev.kaesebrot.eu/go/feedrrr/internal/sinks"
+	"dev.kaesebrot.eu/go/feedrrr/internal/utility"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/rss"
+	"dev.kaesebrot.eu/go/feedrrr/internal/config"
+	"dev.kaesebrot.eu/go/feedrrr/internal/rss"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"

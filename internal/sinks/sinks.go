@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/config"
-	"dev.kaesebrot.eu/go/feedrrr/internal/pkg/utility"
+	"dev.kaesebrot.eu/go/feedrrr/internal/config"
+	"dev.kaesebrot.eu/go/feedrrr/internal/utility"
 	"github.com/nicholas-fedor/shoutrrr"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
