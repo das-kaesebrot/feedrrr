@@ -6,7 +6,6 @@ jobs:
   #     - telegram
   #     - email
   #   prefix: LOBER
-  #   plaintext: true
 
 sinks:
   # telegram: telegram://bottoken?chats=chatid

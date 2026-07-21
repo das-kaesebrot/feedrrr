@@ -88,9 +88,6 @@ jobs:
     sinks:
       - my-telegram
     
-    # Convert article content to plain text (optional, default: false)
-    plaintext: true
-    
     # Title prefix (optional)
     prefix: "[New Post]"
 

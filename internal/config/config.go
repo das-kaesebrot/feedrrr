@@ -39,7 +39,6 @@ type JobConfig struct {
 	Sinks           []string            `mapstructure:"sinks"`
 	Schedule        string              `mapstructure:"schedule"`
 	Source          string              `mapstructure:"source"`
-	UsePlainText    bool                `mapstructure:"plaintext,omitempty"`
 	Prefix          string              `mapstructure:"prefix,omitempty"` // title prefix
 	ChangeMode      ChangeDetectionMode `mapstructure:"change_mode"`
 	MessageTemplate string              `mapstructure:"msg_template"`
