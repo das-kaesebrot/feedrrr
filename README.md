@@ -97,6 +97,12 @@ jobs:
     # guid: articles that have appeared after an article with the guid seen during last cronjob run will be detected as new
     change_mode: guid
 
+    # Message sender mode (optional, default: instant)
+    # can be either "instant" or "batched"
+    # instant: each new item is sent as an individual message
+    # batched: all new items are sent in one combined message
+    sender_mode: instant
+
     # Item message template (optional, default: see /internal/confg/config.go:DefaultMessageTemplate)
     # can be a multiline YAML string
     # Available properties:

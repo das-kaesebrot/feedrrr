@@ -21,6 +21,7 @@ jobs:
       - telegram
     prefix: "[Blog]"
     change_mode: pubdate
+    sender_mode: batched
     msg_template: |
       Item with a custom feed message appeared:
       {{.Title}}

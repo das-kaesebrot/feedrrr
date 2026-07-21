@@ -6,6 +6,8 @@ jobs:
   #     - telegram
   #     - email
   #   prefix: LOBER
+  #   sender_mode: instant
+  #   change_mode: guid
 
 sinks:
   # telegram: telegram://bottoken?chats=chatid
