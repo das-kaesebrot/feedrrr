@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log/slog"
 
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
@@ -25,16 +26,18 @@ type BatchedSender struct {
 	BaseMessageSender
 }
 
-type ImmediateSender struct {
+type InstantSender struct {
 	BaseMessageSender
 }
 
 func NewBatchedSender(router *router.ServiceRouter, tmpl *template.Template) MessageSender {
+	slog.Debug("Initialized new batched sender", "router", *router, "tmpl", *tmpl)
 	return &BatchedSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}}}
 }
 
-func NewImmediateSender(router *router.ServiceRouter, tmpl *template.Template) MessageSender {
-	return &ImmediateSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}}}
+func NewInstantSender(router *router.ServiceRouter, tmpl *template.Template) MessageSender {
+	slog.Debug("Initialized new instant sender", "router", *router, "tmpl", *tmpl)
+	return &InstantSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}}}
 }
 
 func (b BaseMessageSender) RenderWithTemplate(item RSSItem) (string, error) {
@@ -61,7 +64,7 @@ func (s BatchedSender) Flush() {
 	s.router.Flush(s.params)
 }
 
-func (s ImmediateSender) Send(title string, item RSSItem) error {
+func (s InstantSender) Send(title string, item RSSItem) error {
 	msg, err := s.RenderWithTemplate(item)
 	if err != nil {
 		return err
@@ -82,4 +85,4 @@ func (s ImmediateSender) Send(title string, item RSSItem) error {
 	return nil
 }
 
-func (s ImmediateSender) Flush() {}
+func (s InstantSender) Flush() {}

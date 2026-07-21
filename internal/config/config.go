@@ -8,15 +8,24 @@ import (
 	"github.com/spf13/viper"
 )
 
-type ChangeDetectionMode int
-
-const (
-	ModePubDate ChangeDetectionMode = iota
-	ModeGUID
+type (
+	ChangeDetectionMode int
+	SenderMode          int
 )
 
 const (
-	DefaultChangeDetectionMode        = ModeGUID
+	ChangeModePubDate ChangeDetectionMode = iota
+	ChangeModeGUID
+)
+
+const (
+	SenderModeInstant SenderMode = iota
+	SenderModeBatched
+)
+
+const (
+	DefaultChangeDetectionMode        = ChangeModeGUID
+	DefaultSenderMode                 = SenderModeInstant
 	DefaultMessageTemplate     string = `{{.Title}} ({{.PubDate}})
 
 {{ html2text (or .Content .Description "no content") }}
@@ -26,8 +35,13 @@ const (
 )
 
 var changeModeMap = map[string]ChangeDetectionMode{
-	"pubdate": ModePubDate,
-	"guid":    ModeGUID,
+	"pubdate": ChangeModePubDate,
+	"guid":    ChangeModeGUID,
+}
+
+var senderModeMap = map[string]SenderMode{
+	"instant": SenderModeInstant,
+	"batched": SenderModeBatched,
 }
 
 type FeedrrrConfig struct {
@@ -36,12 +50,14 @@ type FeedrrrConfig struct {
 }
 
 type JobConfig struct {
-	Sinks           []string            `mapstructure:"sinks"`
-	Schedule        string              `mapstructure:"schedule"`
-	Source          string              `mapstructure:"source"`
-	Prefix          string              `mapstructure:"prefix,omitempty"` // title prefix
-	ChangeMode      ChangeDetectionMode `mapstructure:"change_mode"`
-	MessageTemplate string              `mapstructure:"msg_template"`
+	Sinks              []string            `mapstructure:"sinks"`
+	Schedule           string              `mapstructure:"schedule"`
+	Source             string              `mapstructure:"source"`
+	Prefix             string              `mapstructure:"prefix,omitempty"` // title prefix
+	ChangeMode         ChangeDetectionMode `mapstructure:"change_mode"`
+	SenderMode         SenderMode          `mapstructure:"sender_mode"`
+	MessageTemplate    string              `mapstructure:"msg_template"`
+	SendFutureArticles bool                `mapstructure:"future_articles"`
 }
 
 func (t *ChangeDetectionMode) UnmarshalMapstructure(input any) error {
@@ -59,6 +75,27 @@ func (t *ChangeDetectionMode) UnmarshalMapstructure(input any) error {
 
 	if !ok {
 		return fmt.Errorf("Invalid value for change detection mode: %s", str)
+	}
+
+	*t = mappedVal
+	return nil
+}
+
+func (t *SenderMode) UnmarshalMapstructure(input any) error {
+	str, ok := input.(string)
+	if !ok {
+		return fmt.Errorf("expected string, got %T", input)
+	}
+
+	if str == "" {
+		*t = DefaultSenderMode
+		return nil
+	}
+
+	mappedVal, ok := senderModeMap[strings.TrimSpace(str)]
+
+	if !ok {
+		return fmt.Errorf("Invalid value for sender mode: %s", str)
 	}
 
 	*t = mappedVal

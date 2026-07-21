@@ -56,13 +56,20 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 
 		logger := slog.Default().With("job", name)
 
-		sender := rss.NewImmediateSender(router, tmpl)
+		var sender rss.MessageSender
+		switch cfg.SenderMode {
+		case config.SenderModeInstant:
+			sender = rss.NewInstantSender(router, tmpl)
+		case config.SenderModeBatched:
+			sender = rss.NewBatchedSender(router, tmpl)
+		}
+
 		var rssJob rss.FeedPoller
 		switch cfg.ChangeMode {
-		case config.ModeGUID:
+		case config.ChangeModeGUID:
 			rssJob = rss.NewGUIDJob(*logger, *url, prefix, sender)
-		case config.ModePubDate:
-			rssJob = rss.NewPubDateJob(*logger, *url, prefix, false, sender)
+		case config.ChangeModePubDate:
+			rssJob = rss.NewPubDateJob(*logger, *url, prefix, cfg.SendFutureArticles, sender)
 		}
 
 		// format: * * * * *   -> without seconds (5 elements)
