@@ -51,16 +51,17 @@ func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	// special case: we've only just been initialized
 	if *j.lastGUID == "" {
 		*j.lastGUID = currentTopGUID
+		j.logger.Debug("Empty last GUID", "lastGUID", *j.lastGUID)
 		return nil
 	}
 
-	for _, item := range feed.Items {
+	for idx, item := range feed.Items {
 		if *j.lastGUID == item.GUID {
-			j.logger.Debug("Break", "item", item, "lastGUID", *j.lastGUID)
+			j.logger.Debug("Break", "item", item, "idx", idx, "lastGUID", *j.lastGUID)
 			break
 		}
 
-		j.logger.Debug("New item", "item", item)
+		j.logger.Debug("New item", "item", item, "idx", idx)
 		err := j.sender.Send(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
 		if err != nil {
 			return err
@@ -92,18 +93,18 @@ func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 		*currentTopPubDate = now
 	}
 
-	for _, item := range feed.Items {
+	for idx, item := range feed.Items {
 		// assumption: items are sorted by pubdate
 		if item.PublishedParsed.Before(*j.lastPubDate) {
-			j.logger.Debug("Break", "item", item, "lastPubDate", *j.lastPubDate)
+			j.logger.Debug("Break", "item", item, "lastPubDate", *j.lastPubDate, "idx", idx)
 			break
 		}
 		if !j.sendFutureItems && item.PublishedParsed.After(now) {
-			j.logger.Debug("Continue", "item", item, "lastPubDate", *j.lastPubDate)
+			j.logger.Debug("Continue", "item", item, "lastPubDate", *j.lastPubDate, "idx", idx)
 			continue
 		}
 
-		j.logger.Debug("New item", "item", item)
+		j.logger.Debug("New item", "item", item, "idx", idx)
 
 		err := j.sender.Send(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
 		if err != nil {
