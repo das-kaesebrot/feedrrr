@@ -88,9 +88,9 @@ func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	}
 
 	now := time.Now()
-	currentTopPubDate := feed.Items[0].PublishedParsed
+	currentTopPubDate := *feed.Items[0].PublishedParsed
 	if !j.sendFutureItems && currentTopPubDate.After(now) {
-		*currentTopPubDate = now
+		currentTopPubDate = now
 	}
 
 	for idx, item := range feed.Items {
