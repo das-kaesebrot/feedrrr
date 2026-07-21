@@ -56,11 +56,14 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 
 		logger := slog.Default().With("job", name)
 
-		rssJob := rss.NewJob(*logger, *url, router, tmpl, rss.RSSJobOpts{
-			SendBatched:         false,
-			TitlePrefix:         prefix,
-			ChangeDetectionMode: cfg.ChangeMode,
-		})
+		sender := rss.NewImmediateSender(router, tmpl)
+		var rssJob rss.FeedPoller
+		switch cfg.ChangeMode {
+		case config.ModeGUID:
+			rssJob = rss.NewGUIDJob(*logger, *url, prefix, sender)
+		case config.ModePubDate:
+			rssJob = rss.NewPubDateJob(*logger, *url, prefix, false, sender)
+		}
 
 		// format: * * * * *   -> without seconds (5 elements)
 		//         * * * * * * -> with seconds (6 elements)
@@ -73,7 +76,7 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 		j, err := s.NewJob(
 			gocron.CronJob(cfg.Schedule, withSeconds),
 			gocron.NewTask(func(contxt context.Context) error {
-				return rssJob.PollFeed(contxt)
+				return rssJob.RetrieveAndSendNewItems(contxt)
 			}),
 			gocron.WithName(name),
 			gocron.WithContext(*ctx),

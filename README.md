@@ -135,7 +135,7 @@ The default message template is:
 {{.Link}}
 ```
 
-The context for the template is `rss.RSSItem` in [rss.go](./internal/rss/rss.go):
+The context for the template is `rss.RSSItem` in [item.go](./internal/rss/item.go):
 ```go
 type RSSItem struct {
 	Title       string

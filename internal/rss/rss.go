@@ -1,147 +1,146 @@
 package rss
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/url"
 	"time"
 
-	"dev.kaesebrot.eu/go/feedrrr/internal/config"
 	"github.com/mmcdole/gofeed"
-	"github.com/nicholas-fedor/shoutrrr/pkg/router"
-	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
 
-type RSSItem struct {
-	Title       string
-	PubDate     time.Time
-	Content     string
-	Description string
-	GUID        string
-	Link        string
-}
-
-func RSSItemFromGoFeedItem(item *gofeed.Item) *RSSItem {
-	return &RSSItem{
-		Title:       item.Title,
-		PubDate:     *item.PublishedParsed,
-		Content:     item.Content,
-		Description: item.Description,
-		GUID:        item.GUID,
-		Link:        item.Link,
-	}
-}
-
-type RSSJobOpts struct {
-	SendBatched         bool
-	TitlePrefix         string
-	ChangeDetectionMode config.ChangeDetectionMode
+type FeedPoller interface {
+	RetrieveAndSendNewItems(ctx context.Context) error
 }
 
 type RSSJob struct {
-	logger            *slog.Logger
-	lastExecutionTime *time.Time
-	lastGUID          *string
-	feedURL           *url.URL
-	router            *router.ServiceRouter
-	opts              *RSSJobOpts
-	tmpl              *template.Template
+	logger      *slog.Logger
+	feedURL     *url.URL
+	titlePrefix string
+	sender      MessageSender
 }
 
-func NewJob(logger slog.Logger, url url.URL, router *router.ServiceRouter, tmpl *template.Template, opts RSSJobOpts) *RSSJob {
-	now := time.Now()
-	lastGUID := ""
-	return &RSSJob{logger: &logger, lastExecutionTime: &now, lastGUID: &lastGUID, feedURL: &url, router: router, tmpl: tmpl, opts: &opts}
+type GUIDJob struct {
+	RSSJob
+	lastGUID *string
 }
 
-func (j *RSSJob) PollFeed(ctx context.Context) error {
-	params := new(types.Params{})
-	params.SetTitle(fmt.Sprintf("%sNew items in feed", j.opts.TitlePrefix))
+type PubDateJob struct {
+	RSSJob
+	lastPubDate     *time.Time
+	sendFutureItems bool
+}
 
-	if j.opts.SendBatched {
-		defer j.router.Flush(params)
-	}
-
-	now := time.Now()
-	j.logger.Debug("Polling feed", "now", now.String(), "lastExecutionTime", j.lastExecutionTime.String(), "lastGUID", *j.lastGUID, "feedURL", j.feedURL)
-
+func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURLWithContext(j.feedURL.String(), ctx)
 	if err != nil {
 		return err
 	}
+	defer j.sender.Flush()
 
 	j.logger.Debug("Got feed", "amount", len(feed.Items))
 
 	if len(feed.Items) == 0 {
-		*j.lastExecutionTime = now
-		*j.lastGUID = ""
 		return nil
 	}
 
 	currentTopGUID := feed.Items[0].GUID
+
+	// special case: we've only just been initialized
 	if *j.lastGUID == "" {
 		*j.lastGUID = currentTopGUID
+		return nil
 	}
 
 	for _, item := range feed.Items {
-		if item.PublishedParsed == nil {
-			j.logger.Warn("Got item without parseable publish date!", "publishedStr", "GUID", item.GUID, item.Published)
+		if *j.lastGUID == item.GUID {
+			j.logger.Debug("Break", "item", item, "lastGUID", *j.lastGUID)
+			break
 		}
 
-		switch j.opts.ChangeDetectionMode {
-		case config.ModePubDate:
-			if item.PublishedParsed.Before(*j.lastExecutionTime) {
-				continue
-			} else if item.PublishedParsed.After(now) {
-				*j.lastExecutionTime = now
-				return nil
-			}
-		case config.ModeGUID:
-			if *j.lastGUID == item.GUID {
-				*j.lastGUID = currentTopGUID
-				return nil
-			}
-		}
-
-		j.logger.Info("Found new item", "title", item.Title, "published", item.PublishedParsed, "guid", item.GUID)
-		content := item.Content
-		if content == "" {
-			content = item.Description
-		}
-
-		rssItem := RSSItemFromGoFeedItem(item)
-
-		var msgBytes bytes.Buffer
-		err := j.tmpl.Execute(&msgBytes, rssItem)
+		j.logger.Debug("New item", "item", item)
+		err := j.sender.Send(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
 		if err != nil {
-			return fmt.Errorf("Error encountered while rendering RSS item to message: %w", err)
-		}
-
-		if j.opts.SendBatched {
-			j.router.Enqueue(msgBytes.String())
-			continue
-		}
-
-		params.SetTitle(fmt.Sprintf("%s%s", j.opts.TitlePrefix, item.Title))
-
-		routerErrs := []error{}
-		for _, err := range j.router.Send(msgBytes.String(), params) {
-			if err != nil {
-				routerErrs = append(routerErrs, err)
-			}
-		}
-		if len(routerErrs) > 0 {
-			return errors.Join(routerErrs...)
+			return err
 		}
 	}
 
-	*j.lastExecutionTime = now
+	j.logger.Debug("Successful iteration")
 	*j.lastGUID = currentTopGUID
-
 	return nil
+}
+
+func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
+	fp := gofeed.NewParser()
+	feed, err := fp.ParseURLWithContext(j.feedURL.String(), ctx)
+	if err != nil {
+		return err
+	}
+	defer j.sender.Flush()
+
+	j.logger.Debug("Got feed", "amount", len(feed.Items))
+
+	if len(feed.Items) == 0 {
+		return nil
+	}
+
+	now := time.Now()
+	currentTopPubDate := feed.Items[0].PublishedParsed
+	if !j.sendFutureItems && currentTopPubDate.After(now) {
+		*currentTopPubDate = now
+	}
+
+	for _, item := range feed.Items {
+		// assumption: items are sorted by pubdate
+		if item.PublishedParsed.Before(*j.lastPubDate) {
+			j.logger.Debug("Break", "item", item, "lastPubDate", *j.lastPubDate)
+			break
+		}
+		if !j.sendFutureItems && item.PublishedParsed.After(now) {
+			j.logger.Debug("Continue", "item", item, "lastPubDate", *j.lastPubDate)
+			continue
+		}
+
+		j.logger.Debug("New item", "item", item)
+
+		err := j.sender.Send(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
+		if err != nil {
+			return err
+		}
+	}
+
+	j.logger.Debug("Successful iteration")
+	*j.lastPubDate = *currentTopPubDate
+	return nil
+}
+
+func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender MessageSender) FeedPoller {
+	lastGUID := ""
+	logger.Debug("Initializing new GUID job")
+	return &GUIDJob{
+		RSSJob{
+			logger:      logger.With("feedURL", url.String(), "type", "guid"),
+			feedURL:     &url,
+			titlePrefix: titlePrefix,
+			sender:      sender,
+		},
+		&lastGUID,
+	}
+}
+
+func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutureItems bool, sender MessageSender) FeedPoller {
+	lastPubDate := time.Now()
+	logger.Debug("Initializing new PubDate job")
+	return &PubDateJob{
+		RSSJob{
+			logger:      logger.With("feedURL", url.String(), "type", "pubdate"),
+			feedURL:     &url,
+			titlePrefix: titlePrefix,
+			sender:      sender,
+		},
+		&lastPubDate,
+		sendFutureItems,
+	}
 }
