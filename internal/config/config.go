@@ -14,8 +14,8 @@ type (
 )
 
 const (
-	ChangeModePubDate ChangeDetectionMode = iota
-	ChangeModeGUID
+	ChangeModeGUID ChangeDetectionMode = iota
+	ChangeModePubDate
 )
 
 const (
