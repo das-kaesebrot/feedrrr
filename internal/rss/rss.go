@@ -113,7 +113,7 @@ func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	}
 
 	j.logger.Debug("Successful iteration")
-	*j.lastPubDate = *currentTopPubDate
+	*j.lastPubDate = currentTopPubDate
 	return nil
 }
 
