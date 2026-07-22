@@ -13,7 +13,7 @@
             "env": {
                 "LOG_LEVEL": "debug"
             },
-            "args": ["-c", "${workspaceFolder}/config.yml"]
+            "args": ["-c", "${workspaceFolder}/config.local.yml"]
         }
     ]
 }
