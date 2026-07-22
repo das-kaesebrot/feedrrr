@@ -1,0 +1,33 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**.go"
+      - go.mod
+      - go.sum
+      - .github/workflows/tests.yml
+  pull_request:
+    branches:
+      - main
+  
+  # allow this workflow to be called from other workflows
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-slim
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+    
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.26.x'
+
+      - name: Test
+        run: go test -v ./...
