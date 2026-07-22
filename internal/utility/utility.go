@@ -1,6 +1,7 @@
 package utility
 
 import (
+	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
@@ -44,4 +45,9 @@ func Prepend[T any](slice []T, elems ...T) []T {
 	slice = slice[:total]
 	copy(slice[0:], elems)
 	return slice
+}
+
+// log out pointers for debug purposes.
+func LogPtr[T any](ptr *T) {
+	slog.Debug(fmt.Sprintf("Pointer debugging: %T %v %p %v", ptr, &ptr, ptr, *ptr))
 }
