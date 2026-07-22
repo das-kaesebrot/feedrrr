@@ -17,7 +17,10 @@ import (
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 
-var Version = "dev"
+var (
+	Version = "v0.0.1-dev"
+	GitHash = "0000000000000000000000000000000000000000"
+)
 
 func parseLogLevelFromString(levelStr string) (slog.Level, error) {
 	switch strings.ToLower(levelStr) {
@@ -56,7 +59,7 @@ func main() {
 		slog.Warn(err.Error())
 	}
 
-	slog.Info("Starting up", "version", Version)
+	slog.Info("Starting up", "version", Version, "gitHash", GitHash)
 	slog.Debug("Using slog with specified level", "loglevel", logLevel)
 
 	if configFileOverride != "" {
