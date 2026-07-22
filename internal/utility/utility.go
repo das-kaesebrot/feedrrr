@@ -30,3 +30,18 @@ func CheckFileAccess(path string) error {
 
 	return nil
 }
+
+// Prepends elements to a slice. If necessary, the slice is recreated if the underlying capacity doesn't fit.
+// Abridged from this blog article: https://go.dev/blog/slices#append-an-example
+func Prepend[T any](slice []T, elems ...T) []T {
+	total := len(slice) + len(elems)
+	if total > cap(slice) {
+		newSize := total*3/2 + 1
+		newSlice := make([]T, total, newSize)
+		copy(newSlice[len(elems):], slice)
+		slice = newSlice
+	}
+	slice = slice[:total]
+	copy(slice[0:], elems)
+	return slice
+}
