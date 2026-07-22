@@ -38,13 +38,13 @@ func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer j.sender.Flush()
 
 	j.logger.Debug("Got feed", "amount", len(feed.Items))
 
 	if len(feed.Items) == 0 {
 		return nil
 	}
+	j.sender.InitQueue(len(feed.Items))
 
 	currentTopGUID := feed.Items[0].GUID
 
@@ -62,10 +62,15 @@ func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 		}
 
 		j.logger.Debug("New item", "item", item, "idx", idx)
-		err := j.sender.Send(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
+		err := j.sender.Enqueue(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
 		if err != nil {
 			return err
 		}
+	}
+
+	err = j.sender.Flush()
+	if err != nil {
+		return err
 	}
 
 	j.logger.Debug("Successful iteration")
@@ -79,13 +84,13 @@ func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer j.sender.Flush()
 
 	j.logger.Debug("Got feed", "amount", len(feed.Items))
 
 	if len(feed.Items) == 0 {
 		return nil
 	}
+	j.sender.InitQueue(len(feed.Items))
 
 	now := time.Now()
 	currentTopPubDate := *feed.Items[0].PublishedParsed
@@ -106,10 +111,15 @@ func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 
 		j.logger.Debug("New item", "item", item, "idx", idx)
 
-		err := j.sender.Send(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
+		err := j.sender.Enqueue(fmt.Sprintf("%s%s", j.titlePrefix, item.Title), *RSSItemFromGoFeedItem(item))
 		if err != nil {
 			return err
 		}
+	}
+
+	err = j.sender.Flush()
+	if err != nil {
+		return err
 	}
 
 	j.logger.Debug("Successful iteration")
