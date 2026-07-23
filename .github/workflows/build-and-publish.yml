@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - main
+    paths:
+      - "**.go"
+      - go.mod
+      - go.sum
+      - .github/workflows/tests.yml
+    
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -63,8 +71,11 @@ jobs:
             type=sha
             # full length sha
             type=sha,format=long
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
             # set latest tag for default branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
             type=raw,value=${{ env.COMMIT_REF_SLUG }}
 
       - name: Build and push Docker image
