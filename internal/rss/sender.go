@@ -70,12 +70,17 @@ func (b BaseMessageSender) Enqueue(title string, item RSSItem) error {
 		return err
 	}
 
-	*b.messages = utility.Prepend(*b.messages, queuedItem{title: title, msg: msg})
+	qItem := queuedItem{title: title, msg: msg}
+
+	*b.messages = utility.Prepend(*b.messages, qItem)
+	slog.Debug("Enqueue item", "messages", *b.messages, "item", qItem)
 	return nil
 }
 
 func (s BatchedSender) Flush() error {
 	defer s.router.Flush(s.params)
+
+	slog.Debug("Flush", "messages", *s.messages)
 
 	for _, item := range *s.messages {
 		s.router.Enqueue(item.msg)
@@ -86,6 +91,8 @@ func (s BatchedSender) Flush() error {
 
 func (s InstantSender) Flush() error {
 	errs := make([]error, 0, len(*s.messages))
+
+	slog.Debug("Flush", "messages", *s.messages)
 
 	for _, item := range *s.messages {
 		s.params.SetTitle(item.title)
