@@ -19,6 +19,7 @@ type RSSJob struct {
 	feedURL     *url.URL
 	titlePrefix string
 	sender      MessageSender
+	fp          *gofeed.Parser
 }
 
 type GUIDJob struct {
@@ -33,8 +34,7 @@ type PubDateJob struct {
 }
 
 func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURLWithContext(j.feedURL.String(), ctx)
+	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
 	if err != nil {
 		return err
 	}
@@ -79,8 +79,7 @@ func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 }
 
 func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURLWithContext(j.feedURL.String(), ctx)
+	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
 	if err != nil {
 		return err
 	}
@@ -136,6 +135,7 @@ func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender Mess
 			feedURL:     &url,
 			titlePrefix: titlePrefix,
 			sender:      sender,
+			fp:          gofeed.NewParser(),
 		},
 		&lastGUID,
 	}
@@ -150,6 +150,7 @@ func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutu
 			feedURL:     &url,
 			titlePrefix: titlePrefix,
 			sender:      sender,
+			fp:          gofeed.NewParser(),
 		},
 		&lastPubDate,
 		sendFutureItems,
