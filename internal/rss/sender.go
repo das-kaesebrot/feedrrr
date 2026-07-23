@@ -39,14 +39,12 @@ type InstantSender struct {
 
 func NewBatchedSender(router *router.ServiceRouter, tmpl *template.Template) MessageSender {
 	slog.Debug("Initialized new batched sender", "router", *router, "tmpl", *tmpl)
-	q := make([]queuedItem, 0)
-	return &BatchedSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messageDeque: q}}
+	return &BatchedSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messageDeque: make([]queuedItem, 0)}}
 }
 
 func NewInstantSender(router *router.ServiceRouter, tmpl *template.Template) MessageSender {
 	slog.Debug("Initialized new instant sender", "router", *router, "tmpl", *tmpl)
-	q := make([]queuedItem, 0)
-	return &InstantSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messageDeque: q}}
+	return &InstantSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messageDeque: make([]queuedItem, 0)}}
 }
 
 func (b *BaseMessageSender) InitQueue(cap int) {
