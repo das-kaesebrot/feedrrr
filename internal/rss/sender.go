@@ -51,6 +51,7 @@ func (b *BaseMessageSender) InitQueue(cap int) {
 	q := make([]queuedItem, 0, cap)
 	b.messageDeque = q
 }
+
 func (b *BaseMessageSender) RenderWithTemplate(item RSSItem) (string, error) {
 	var msgBytes bytes.Buffer
 	err := b.tmpl.Execute(&msgBytes, item)
@@ -104,6 +105,7 @@ func (s *BatchedSender) Flush() error {
 func (s *InstantSender) Flush() error {
 	errs := make([]error, 0, len(s.messageDeque))
 
+	succ := 0
 	slog.Debug("Flush", "messages", s.messageDeque)
 
 	for {
@@ -121,8 +123,13 @@ func (s *InstantSender) Flush() error {
 		}
 		if len(routerErrs) > 0 {
 			errs = append(errs, fmt.Errorf("Error processing item: '%s': %w", item.title, errors.Join(routerErrs...)))
+			continue
 		}
+
+		succ += 1
 	}
+
+	slog.Debug("Done flushing", "success", succ, "errs", len(errs))
 
 	if len(errs) > 0 {
 		return fmt.Errorf("Errors encountered while sending: %w", errors.Join(errs...))
