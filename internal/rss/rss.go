@@ -34,7 +34,7 @@ type PubDateJob struct {
 	sendFutureItems bool
 }
 
-func (j GUIDJob) Init(ctx context.Context) error {
+func (j *GUIDJob) Init(ctx context.Context) error {
 	defer j.logger.Debug("Init", "lastGUID", *j.lastGUID)
 
 	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
@@ -50,7 +50,7 @@ func (j GUIDJob) Init(ctx context.Context) error {
 	return nil
 }
 
-func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
+func (j *GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	return nil
 }
 
-func (j PubDateJob) Init(ctx context.Context) error {
+func (j *PubDateJob) Init(ctx context.Context) error {
 	defer j.logger.Debug("Init", "lastPubDate", *j.lastPubDate)
 
 	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
@@ -111,7 +111,7 @@ func (j PubDateJob) Init(ctx context.Context) error {
 	return nil
 }
 
-func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
+func (j *PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
 	if err != nil {
 		return err
