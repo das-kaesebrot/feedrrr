@@ -39,10 +39,11 @@ func Prepend[T any](slice []T, elems ...T) []T {
 	if total > cap(slice) {
 		newSize := total*3/2 + 1
 		newSlice := make([]T, total, newSize)
-		copy(newSlice[len(elems):], slice)
+		copy(newSlice, slice)
 		slice = newSlice
 	}
 	slice = slice[:total]
+	copy(slice[len(elems):], slice)
 	copy(slice[0:], elems)
 	return slice
 }
