@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"log/slog"
 
-	"dev.kaesebrot.eu/go/feedrrr/internal/utility"
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
@@ -72,29 +71,48 @@ func (b *BaseMessageSender) Enqueue(title string, item RSSItem) error {
 
 	qItem := queuedItem{title: title, msg: msg}
 
-	*b.messages = utility.Prepend(*b.messages, qItem)
-	slog.Debug("Enqueue item", "messages", *b.messages, "item", qItem)
+	b.messageDeque = append(b.messageDeque, qItem)
+	slog.Debug("Enqueue item", "messages", b.messageDeque, "item", qItem)
 	return nil
 }
 
-func (s BatchedSender) Flush() error {
+// implement deque-like pop right method
+func (b *BaseMessageSender) popRight() (queuedItem, bool) {
+	if len(b.messageDeque) == 0 {
+		return queuedItem{}, false
+	}
+
+	element := b.messageDeque[len(b.messageDeque)-1]
+	b.messageDeque = b.messageDeque[:len(b.messageDeque)-1]
+	return element, true
+}
+
+func (s *BatchedSender) Flush() error {
 	defer s.router.Flush(s.params)
 
-	slog.Debug("Flush", "messages", *s.messages)
+	slog.Debug("Flush", "messages", s.messageDeque)
 
-	for _, item := range *s.messages {
+	for {
+		item, ok := s.popRight()
+		if !ok {
+			break
+		}
 		s.router.Enqueue(item.msg)
 	}
 
 	return nil
 }
 
-func (s InstantSender) Flush() error {
-	errs := make([]error, 0, len(*s.messages))
+func (s *InstantSender) Flush() error {
+	errs := make([]error, 0, len(s.messageDeque))
 
-	slog.Debug("Flush", "messages", *s.messages)
+	slog.Debug("Flush", "messages", s.messageDeque)
 
-	for _, item := range *s.messages {
+	for {
+		item, ok := s.popRight()
+		if !ok {
+			break
+		}
 		s.params.SetTitle(item.title)
 
 		routerErrs := []error{}
