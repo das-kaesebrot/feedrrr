@@ -50,11 +50,11 @@ func NewInstantSender(router *router.ServiceRouter, tmpl *template.Template) Mes
 	return &InstantSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messageDeque: q}}
 }
 
-func (b BaseMessageSender) InitQueue(cap int) {
+func (b *BaseMessageSender) InitQueue(cap int) {
 	q := make([]queuedItem, 0, cap)
-	*b.messages = q
+	b.messageDeque = q
 }
-func (b BaseMessageSender) RenderWithTemplate(item RSSItem) (string, error) {
+func (b *BaseMessageSender) RenderWithTemplate(item RSSItem) (string, error) {
 	var msgBytes bytes.Buffer
 	err := b.tmpl.Execute(&msgBytes, item)
 	if err != nil {
@@ -64,7 +64,7 @@ func (b BaseMessageSender) RenderWithTemplate(item RSSItem) (string, error) {
 	return msgBytes.String(), nil
 }
 
-func (b BaseMessageSender) Enqueue(title string, item RSSItem) error {
+func (b *BaseMessageSender) Enqueue(title string, item RSSItem) error {
 	msg, err := b.RenderWithTemplate(item)
 	if err != nil {
 		return err
