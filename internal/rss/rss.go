@@ -11,6 +11,7 @@ import (
 )
 
 type FeedPoller interface {
+	Init(ctx context.Context) error
 	RetrieveAndSendNewItems(ctx context.Context) error
 }
 
@@ -31,6 +32,22 @@ type PubDateJob struct {
 	RSSJob
 	lastPubDate     *time.Time
 	sendFutureItems bool
+}
+
+func (j GUIDJob) Init(ctx context.Context) error {
+	defer j.logger.Debug("Init", "lastGUID", *j.lastGUID)
+
+	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(feed.Items) == 0 {
+		return nil
+	}
+
+	*j.lastGUID = feed.Items[0].GUID
+	return nil
 }
 
 func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
@@ -75,6 +92,22 @@ func (j GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 
 	j.logger.Debug("Successful iteration")
 	*j.lastGUID = currentTopGUID
+	return nil
+}
+
+func (j PubDateJob) Init(ctx context.Context) error {
+	defer j.logger.Debug("Init", "lastPubDate", *j.lastPubDate)
+
+	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(feed.Items) == 0 {
+		return nil
+	}
+
+	*j.lastPubDate = *feed.Items[0].PublishedParsed
 	return nil
 }
 
@@ -128,7 +161,7 @@ func (j PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 
 func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender MessageSender) FeedPoller {
 	lastGUID := ""
-	logger.Debug("Initializing new GUID job")
+	logger.Debug("Creating new GUID job")
 	return &GUIDJob{
 		RSSJob{
 			logger:      logger.With("feedURL", url.String(), "type", "guid"),
@@ -143,7 +176,7 @@ func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender Mess
 
 func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutureItems bool, sender MessageSender) FeedPoller {
 	lastPubDate := time.Now()
-	logger.Debug("Initializing new PubDate job")
+	logger.Debug("Creating new PubDate job")
 	return &PubDateJob{
 		RSSJob{
 			logger:      logger.With("feedURL", url.String(), "type", "pubdate"),
