@@ -24,10 +24,10 @@ type queuedItem struct {
 }
 
 type BaseMessageSender struct {
-	tmpl     *template.Template
-	router   *router.ServiceRouter
-	params   *types.Params
-	messages *[]queuedItem
+	tmpl         *template.Template
+	router       *router.ServiceRouter
+	params       *types.Params
+	messageDeque []queuedItem
 }
 
 type BatchedSender struct {
@@ -41,13 +41,13 @@ type InstantSender struct {
 func NewBatchedSender(router *router.ServiceRouter, tmpl *template.Template) MessageSender {
 	slog.Debug("Initialized new batched sender", "router", *router, "tmpl", *tmpl)
 	q := make([]queuedItem, 0)
-	return &BatchedSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messages: &q}}
+	return &BatchedSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messageDeque: q}}
 }
 
 func NewInstantSender(router *router.ServiceRouter, tmpl *template.Template) MessageSender {
 	slog.Debug("Initialized new instant sender", "router", *router, "tmpl", *tmpl)
 	q := make([]queuedItem, 0)
-	return &InstantSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messages: &q}}
+	return &InstantSender{BaseMessageSender{router: router, tmpl: tmpl, params: &types.Params{}, messageDeque: q}}
 }
 
 func (b BaseMessageSender) InitQueue(cap int) {
