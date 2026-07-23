@@ -16,7 +16,7 @@ import (
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 )
 
-func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jobSinks *map[string]*router.ServiceRouter) (gocron.Scheduler, error) {
+func SetupJobs(ctx context.Context, jobConfigs *map[string]config.JobConfig, jobSinks *map[string]*router.ServiceRouter) (gocron.Scheduler, error) {
 	s, err := gocron.NewScheduler()
 	if err != nil {
 		return nil, err
@@ -72,6 +72,11 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 			rssJob = rss.NewPubDateJob(*logger, *url, prefix, cfg.SendFutureArticles, sender)
 		}
 
+		err = rssJob.Init(ctx)
+		if err != nil {
+			return nil, err
+		}
+
 		// format: * * * * *   -> without seconds (5 elements)
 		//         * * * * * * -> with seconds (6 elements)
 		scheduleSplit := strings.Split(cfg.Schedule, " ")
@@ -86,7 +91,7 @@ func SetupJobs(ctx *context.Context, jobConfigs *map[string]config.JobConfig, jo
 				return rssJob.RetrieveAndSendNewItems(contxt)
 			}),
 			gocron.WithName(name),
-			gocron.WithContext(*ctx),
+			gocron.WithContext(ctx),
 			gocron.WithEventListeners(
 				gocron.BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
 					slog.Debug("Running job", "jobID", jobID, "jobName", jobName)
