@@ -49,6 +49,8 @@ github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsRe
 github.com/mattn/go-isatty v0.0.24/go.mod h1:nMCL3Zebbrt45jsMDgnfIwz6ydEQApk5oEI3HqDio6A=
 github.com/mmcdole/gofeed v1.4.0 h1:+efDmI/yJXJgTfa8we5zg9GAKsU+2d7tnpt9QZwvjLQ=
 github.com/mmcdole/gofeed v1.4.0/go.mod h1:ngV5MTB7UJko6fH3/fG5AkB/ABUGK1ZTePF9iRhzu/c=
+github.com/mmcdole/gofeed v1.4.1 h1:m7vd4YAukLvoqUQghaILKbqUquHyZq1jBYkeCke/Z3c=
+github.com/mmcdole/gofeed v1.4.1/go.mod h1:X5x1PyeibJi152VEya0AsV+PW4daYmCD4LJaJbeFkcs=
 github.com/mmcdole/goxpp/v2 v2.0.0 h1:HrSCflxerUEqZQNq3u7ldtmE/XkwnTx4Zpq2DW4i5rQ=
 github.com/mmcdole/goxpp/v2 v2.0.0/go.mod h1:CUduYMnO9JB6Z/uqDn9Ormk/r8E9BsLQxHPWDZ961Os=
 github.com/nicholas-fedor/shoutrrr v0.16.1 h1:MOzl3U6zprA45lOTKaTbQW/9wzkR7SC36IFrTr5xfkU=
