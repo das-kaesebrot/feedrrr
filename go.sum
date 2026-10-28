@@ -89,6 +89,8 @@ github.com/nicholas-fedor/shoutrrr v0.21.2 h1:9hfmIYQICmFfSFMNBKfdJgScz2GZ9CepyC
 github.com/nicholas-fedor/shoutrrr v0.21.2/go.mod h1:IvPKcHRxVTt6mqivaomKlTNLTfWDTKYqJfyy1u0cc7s=
 github.com/nicholas-fedor/shoutrrr v0.22.0 h1:hfMU3ayuK0tm68iT5YsdQL+Y6skCF6NDEKBBtmXLZlM=
 github.com/nicholas-fedor/shoutrrr v0.22.0/go.mod h1:qiWfC+p3d0cAhV2R8BTrah2cHRgK6lRMxQ9CSWjkdTU=
+github.com/nicholas-fedor/shoutrrr v0.22.1 h1:9B/sTQyE5BrtUKPpOyRO+XdYIrU0QRIjDdvfUbunWiE=
+github.com/nicholas-fedor/shoutrrr v0.22.1/go.mod h1:kvUu4xf3cgZzkbHCqw0cxu7cxxj4Y//WZeJ6KC0+Q0o=
 github.com/onsi/ginkgo/v2 v2.29.0 h1:rfh+ZFjgJhYWRoIqVf3Uwx/W20yLrcrE2h2GmYVRaag=
 github.com/onsi/ginkgo/v2 v2.29.0/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
 github.com/onsi/gomega v1.41.0 h1:OwKp4pXNgVxf6sCplzYo794OFNuoL2q2SBMU5NSWOjA=
