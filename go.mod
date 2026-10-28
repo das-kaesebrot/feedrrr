@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/k3a/html2text v1.5.1
 	github.com/mmcdole/gofeed v1.5.0
-	github.com/nicholas-fedor/shoutrrr v0.22.0
+	github.com/nicholas-fedor/shoutrrr v0.22.1
 	github.com/spf13/viper v1.21.0
 )
 
