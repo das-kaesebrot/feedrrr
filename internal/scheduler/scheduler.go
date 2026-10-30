@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
-	"text/template"
+	"html/template"
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/config"
 	"dev.kaesebrot.eu/go/feedrrr/internal/rss"
