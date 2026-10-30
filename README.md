@@ -80,14 +80,14 @@ jobs:
   my-feed:
     # RSS/Atom feed URL (required)
     source: https://example.com/feed.xml
-    
+
     # Cron expression using either 5 or 6-elements (with seconds) syntax (required)
     schedule: "*/30 * * * *"
-    
+
     # List of sink aliases or Shoutrrr URLs (required)
     sinks:
       - my-telegram
-    
+
     # Title prefix (optional)
     prefix: "[New Post]"
 
@@ -103,6 +103,10 @@ jobs:
     # batched: all new items are sent in one combined message
     sender_mode: instant
 
+    # HTTP timeout for fetching the feed (optional, default: 60s)
+    # a timeout on the initial fetch is retried on schedule
+    fetch_timeout: 60s
+
     # Item message template (optional, default: see /internal/confg/config.go:DefaultMessageTemplate)
     # can be a multiline YAML string
     # Available properties:
@@ -116,7 +120,7 @@ jobs:
     #
     # Available functions:
     #   html2text(html string) string // generates plaintext from html
-    # 
+    #
     msg_template: |
       Item with a custom feed message appeared:
       {{.Title}}
