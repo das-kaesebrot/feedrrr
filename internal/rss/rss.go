@@ -31,9 +31,7 @@ type GUIDJob struct {
 	seen map[string]struct{}
 }
 
-const fetchTimeout = 60 * time.Second
-
-func newFeedParser() *gofeed.Parser {
+func newFeedParser(fetchTimeout time.Duration) *gofeed.Parser {
 	fp := gofeed.NewParser()
 	fp.Client = &http.Client{Timeout: fetchTimeout}
 	return fp
@@ -183,7 +181,7 @@ func (j *PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	return nil
 }
 
-func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender MessageSender) FeedPoller {
+func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, fetchTimeout time.Duration, sender MessageSender) FeedPoller {
 	logger.Debug("Creating new GUID job")
 	return &GUIDJob{
 		RSSJob{
@@ -191,13 +189,13 @@ func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender Mess
 			feedURL:     &url,
 			titlePrefix: titlePrefix,
 			sender:      sender,
-			fp:          newFeedParser(),
+			fp:          newFeedParser(fetchTimeout),
 		},
 		nil,
 	}
 }
 
-func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutureItems bool, sender MessageSender) FeedPoller {
+func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutureItems bool, fetchTimeout time.Duration, sender MessageSender) FeedPoller {
 	lastPubDate := time.Now()
 	logger.Debug("Creating new PubDate job")
 	return &PubDateJob{
@@ -206,7 +204,7 @@ func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutu
 			feedURL:     &url,
 			titlePrefix: titlePrefix,
 			sender:      sender,
-			fp:          newFeedParser(),
+			fp:          newFeedParser(fetchTimeout),
 		},
 		&lastPubDate,
 		sendFutureItems,

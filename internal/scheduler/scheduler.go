@@ -2,8 +2,10 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"strings"
 	"text/template"
@@ -64,19 +66,30 @@ func SetupJobs(ctx context.Context, jobConfigs *map[string]config.JobConfig, job
 			sender = rss.NewBatchedSender(router, tmpl)
 		}
 
+		fetchTimeout := cfg.FetchTimeout
+		if fetchTimeout <= 0 {
+			// 60s
+			fetchTimeout = config.DefaultFetchTimeout
+		}
+
 		var rssJob rss.FeedPoller
 		switch cfg.ChangeMode {
 		case config.ChangeModeGUID:
-			rssJob = rss.NewGUIDJob(*logger, *url, prefix, sender)
+			rssJob = rss.NewGUIDJob(*logger, *url, prefix, fetchTimeout, sender)
 		case config.ChangeModePubDate:
-			rssJob = rss.NewPubDateJob(*logger, *url, prefix, cfg.SendFutureArticles, sender)
+			rssJob = rss.NewPubDateJob(*logger, *url, prefix, cfg.SendFutureArticles, fetchTimeout, sender)
 		}
 
 		// A feed that is unreachable at startup must not take the whole daemon down
 		// the job seeds its state on the first successful fetch instead
 		err = rssJob.Init(ctx)
 		if err != nil {
-			logger.Warn("Initial fetch failed, will retry on schedule", "err", err)
+			var netErr net.Error
+			isTimeout := errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout())
+			if !isTimeout {
+				return nil, fmt.Errorf("initial fetch for job %q failed: %w", name, err)
+			}
+			logger.Warn("Initial fetch timed out, will retry on schedule", "err", err)
 		}
 
 		// format: * * * * *   -> without seconds (5 elements)
