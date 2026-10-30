@@ -39,6 +39,9 @@ func newFeedParser(fetchTimeout time.Duration) *gofeed.Parser {
 
 // itemKey identifies an item: GUID, falling back to link, then title.
 func itemKey(item *gofeed.Item) string {
+	if item == nil {
+		return ""
+	}
 	if item.GUID != "" {
 		return item.GUID
 	}
@@ -51,6 +54,9 @@ func itemKey(item *gofeed.Item) string {
 func itemKeys(items []*gofeed.Item) map[string]struct{} {
 	keys := make(map[string]struct{}, len(items))
 	for _, item := range items {
+		if item == nil {
+			continue
+		}
 		keys[itemKey(item)] = struct{}{}
 	}
 	return keys
@@ -96,6 +102,10 @@ func (j *GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	j.sender.InitQueue(len(feed.Items))
 
 	for idx, item := range feed.Items {
+		if item == nil {
+			j.logger.Debug("Recieved nil item", "idx", idx)
+			continue
+		}
 		if _, ok := j.seen[itemKey(item)]; ok {
 			continue
 		}
