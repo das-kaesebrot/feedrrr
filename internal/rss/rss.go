@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -23,9 +24,42 @@ type RSSJob struct {
 	fp          *gofeed.Parser
 }
 
+// GUIDJob remembers every item key seen in the previous fetch, so items that
+// get removed or reordered in the feed neither flood the sink nor get skipped
 type GUIDJob struct {
 	RSSJob
-	lastGUID *string
+	seen map[string]struct{}
+}
+
+func newFeedParser(fetchTimeout time.Duration) *gofeed.Parser {
+	fp := gofeed.NewParser()
+	fp.Client = &http.Client{Timeout: fetchTimeout}
+	return fp
+}
+
+// itemKey identifies an item: GUID, falling back to link, then title.
+func itemKey(item *gofeed.Item) string {
+	if item == nil {
+		return ""
+	}
+	if item.GUID != "" {
+		return item.GUID
+	}
+	if item.Link != "" {
+		return item.Link
+	}
+	return item.Title
+}
+
+func itemKeys(items []*gofeed.Item) map[string]struct{} {
+	keys := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		keys[itemKey(item)] = struct{}{}
+	}
+	return keys
 }
 
 type PubDateJob struct {
@@ -35,18 +69,13 @@ type PubDateJob struct {
 }
 
 func (j *GUIDJob) Init(ctx context.Context) error {
-	defer j.logger.Debug("Init", "lastGUID", *j.lastGUID)
-
 	feed, err := j.fp.ParseURLWithContext(j.feedURL.String(), ctx)
 	if err != nil {
 		return err
 	}
 
-	if len(feed.Items) == 0 {
-		return nil
-	}
-
-	*j.lastGUID = feed.Items[0].GUID
+	j.seen = itemKeys(feed.Items)
+	j.logger.Debug("Init", "seen", len(j.seen))
 	return nil
 }
 
@@ -58,24 +87,27 @@ func (j *GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 
 	j.logger.Debug("Got feed", "amount", len(feed.Items))
 
+	current := itemKeys(feed.Items)
+
+	// special case: the initial fetch failed, so seed state without sending
+	if j.seen == nil {
+		j.seen = current
+		j.logger.Info("Seeded state on first successful fetch", "items", len(current))
+		return nil
+	}
+
 	if len(feed.Items) == 0 {
 		return nil
 	}
 	j.sender.InitQueue(len(feed.Items))
 
-	currentTopGUID := feed.Items[0].GUID
-
-	// special case: we've only just been initialized
-	if *j.lastGUID == "" {
-		*j.lastGUID = currentTopGUID
-		j.logger.Debug("Empty last GUID", "lastGUID", *j.lastGUID)
-		return nil
-	}
-
 	for idx, item := range feed.Items {
-		if *j.lastGUID == item.GUID {
-			j.logger.Debug("Break", "item", item, "idx", idx, "lastGUID", *j.lastGUID)
-			break
+		if item == nil {
+			j.logger.Debug("Recieved nil item", "idx", idx)
+			continue
+		}
+		if _, ok := j.seen[itemKey(item)]; ok {
+			continue
 		}
 
 		j.logger.Debug("New item", "item", item, "idx", idx)
@@ -91,7 +123,7 @@ func (j *GUIDJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	}
 
 	j.logger.Debug("Successful iteration")
-	*j.lastGUID = currentTopGUID
+	j.seen = current
 	return nil
 }
 
@@ -159,8 +191,7 @@ func (j *PubDateJob) RetrieveAndSendNewItems(ctx context.Context) error {
 	return nil
 }
 
-func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender MessageSender) FeedPoller {
-	lastGUID := ""
+func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, fetchTimeout time.Duration, sender MessageSender) FeedPoller {
 	logger.Debug("Creating new GUID job")
 	return &GUIDJob{
 		RSSJob{
@@ -168,13 +199,13 @@ func NewGUIDJob(logger slog.Logger, url url.URL, titlePrefix string, sender Mess
 			feedURL:     &url,
 			titlePrefix: titlePrefix,
 			sender:      sender,
-			fp:          gofeed.NewParser(),
+			fp:          newFeedParser(fetchTimeout),
 		},
-		&lastGUID,
+		nil,
 	}
 }
 
-func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutureItems bool, sender MessageSender) FeedPoller {
+func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutureItems bool, fetchTimeout time.Duration, sender MessageSender) FeedPoller {
 	lastPubDate := time.Now()
 	logger.Debug("Creating new PubDate job")
 	return &PubDateJob{
@@ -183,7 +214,7 @@ func NewPubDateJob(logger slog.Logger, url url.URL, titlePrefix string, sendFutu
 			feedURL:     &url,
 			titlePrefix: titlePrefix,
 			sender:      sender,
-			fp:          gofeed.NewParser(),
+			fp:          newFeedParser(fetchTimeout),
 		},
 		&lastPubDate,
 		sendFutureItems,

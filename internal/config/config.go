@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -26,6 +27,7 @@ const (
 const (
 	DefaultChangeDetectionMode        = ChangeModeGUID
 	DefaultSenderMode                 = SenderModeInstant
+	DefaultFetchTimeout               = 60 * time.Second
 	DefaultMessageTemplate     string = `{{.Title}} ({{.PubDate}})
 
 {{ html2text (or .Content .Description "no content") }}
@@ -58,6 +60,7 @@ type JobConfig struct {
 	SenderMode         SenderMode          `mapstructure:"sender_mode"`
 	MessageTemplate    string              `mapstructure:"msg_template"`
 	SendFutureArticles bool                `mapstructure:"future_articles"`
+	FetchTimeout       time.Duration       `mapstructure:"fetch_timeout"`
 }
 
 func (t *ChangeDetectionMode) UnmarshalMapstructure(input any) error {
