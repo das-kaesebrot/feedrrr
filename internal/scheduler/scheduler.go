@@ -3,10 +3,10 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/url"
 	"strings"
+	"text/template"
 
 	"dev.kaesebrot.eu/go/feedrrr/internal/config"
 	"dev.kaesebrot.eu/go/feedrrr/internal/rss"
@@ -72,9 +72,11 @@ func SetupJobs(ctx context.Context, jobConfigs *map[string]config.JobConfig, job
 			rssJob = rss.NewPubDateJob(*logger, *url, prefix, cfg.SendFutureArticles, sender)
 		}
 
+		// A feed that is unreachable at startup must not take the whole daemon down
+		// the job seeds its state on the first successful fetch instead
 		err = rssJob.Init(ctx)
 		if err != nil {
-			return nil, err
+			logger.Warn("Initial fetch failed, will retry on schedule", "err", err)
 		}
 
 		// format: * * * * *   -> without seconds (5 elements)

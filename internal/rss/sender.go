@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"html/template"
+	"text/template"
 	"log/slog"
 
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
