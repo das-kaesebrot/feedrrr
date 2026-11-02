@@ -3,7 +3,7 @@ module dev.kaesebrot.eu/go/feedrrr
 go 1.27
 
 require (
-	github.com/go-co-op/gocron/v2 v2.22.0
+	github.com/go-co-op/gocron/v2 v2.23.0
 	github.com/google/uuid v1.6.0
 	github.com/k3a/html2text v1.5.1
 	github.com/mmcdole/gofeed v1.5.0
