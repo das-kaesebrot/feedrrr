@@ -1,6 +1,7 @@
 package sinks
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/nicholas-fedor/shoutrrr/pkg/router"
 	"github.com/nicholas-fedor/shoutrrr/pkg/types"
 )
+
+const maxRecursionDepth = 10
 
 func SetupSinks(resultJobSinks *map[string]*router.ServiceRouter, c *config.FeedrrrConfig) error {
 	sinkAliases, err := flattenSinks(&c.Sinks)
@@ -45,7 +48,7 @@ func SetupSinks(resultJobSinks *map[string]*router.ServiceRouter, c *config.Feed
 func flattenSinks(sinkAliases *map[string][]string) (map[string][]string, error) {
 	flattened := make(map[string][]string)
 	for name, _ := range *sinkAliases {
-		flattenedAlias, err := flattenSinkAliasRecursively(sinkAliases, name)
+		flattenedAlias, err := flattenSinkAliasRecursively(sinkAliases, name, 0)
 		if err != nil {
 			return flattened, err
 		}
@@ -55,7 +58,7 @@ func flattenSinks(sinkAliases *map[string][]string) (map[string][]string, error)
 	return flattened, nil
 }
 
-func flattenSinkAliasRecursively(sinkAliases *map[string][]string, name string) ([]string, error) {
+func flattenSinkAliasRecursively(sinkAliases *map[string][]string, name string, currentDepth int) ([]string, error) {
 	results := []string{}
 	sinks, ok := (*sinkAliases)[name]
 	if !ok {
@@ -66,7 +69,10 @@ func flattenSinkAliasRecursively(sinkAliases *map[string][]string, name string) 
 		if utility.IsUrl(sink) {
 			results = append(results, sink)
 		} else {
-			flattened, err := flattenSinkAliasRecursively(sinkAliases, sink)
+			if currentDepth >= maxRecursionDepth {
+				return results, errors.New("Max recursion depth reached!")
+			}
+			flattened, err := flattenSinkAliasRecursively(sinkAliases, sink, currentDepth+1)
 			if err != nil {
 				return results, err
 			}
