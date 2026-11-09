@@ -13,7 +13,7 @@ COPY . .
 # https://jerrynsh.com/3-easy-ways-to-add-version-flag-in-go/
 RUN go build -v -ldflags "-X 'main.Version=${VERSION}' -X 'main.GitHash=${GIT_HASH}'" -o /usr/local/bin/app ./cmd/feedrrr/main.go
 
-FROM docker.io/library/alpine@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+FROM docker.io/library/alpine@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 ARG APP_WORKDIR="/var/opt/feedrrr"
 ARG RUN_UID="10021"
